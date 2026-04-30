@@ -89,7 +89,20 @@ class AuthRepository {
             .doc(user.uid)
             .set(userModel.toMap());
         await _seedDefaultCategories(user.uid);
-        return userModel;
+        return UserModel.fromMap(
+          (await _firestore.collection('users').doc(user.uid).get()).data()!,
+          user.uid,
+        );
+      }
+
+      // Seed categories if missing (e.g. user created before seeding logic)
+      final catSnap = await _firestore
+          .collection('categories')
+          .where('uid', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+      if (catSnap.docs.isEmpty) {
+        await _seedDefaultCategories(user.uid);
       }
 
       return UserModel.fromMap(userDoc.data()!, user.uid);

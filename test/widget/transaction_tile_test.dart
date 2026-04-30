@@ -5,7 +5,7 @@ import 'package:spendsnap/features/transactions/domain/transaction_model.dart';
 import 'package:spendsnap/shared/widgets/transaction_tile.dart';
 import 'package:spendsnap/core/theme/app_colors.dart';
 
-final _category = const CategoryModel(
+const _category = CategoryModel(
   id: 'cat1',
   uid: 'user1',
   name: 'Food',

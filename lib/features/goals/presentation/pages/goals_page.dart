@@ -35,14 +35,24 @@ class GoalsPage extends StatelessWidget {
         builder: (context, state) {
           if (state is GoalLoading) return const LoadingIndicator();
 
+          if (state is GoalError) {
+            return EmptyState(
+              title: 'Create a Savings Plan',
+              description: 'Set a goal, track your progress, and reach it faster.',
+              icon: Icons.savings_outlined,
+              actionLabel: 'Create Savings Plan',
+              onAction: () => _showAddGoalSheet(context),
+            );
+          }
+
           if (state is GoalLoaded) {
             if (state.goals.isEmpty) {
               return EmptyState(
-                title: 'No goals yet',
+                title: 'Create a Savings Plan',
                 description:
-                    'Set a savings goal and track your progress.',
+                    'Set a goal, track your progress, and reach it faster.',
                 icon: Icons.savings_outlined,
-                actionLabel: 'Add Goal',
+                actionLabel: 'Create Savings Plan',
                 onAction: () => _showAddGoalSheet(context),
               );
             }
@@ -51,7 +61,7 @@ class GoalsPage extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               children: [
                 if (state.active.isNotEmpty) ...[
-                  Text('Active', style: AppTypography.headingMedium),
+                  const Text('Active', style: AppTypography.headingMedium),
                   const SizedBox(height: 12),
                   ...state.active.map((g) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -60,7 +70,7 @@ class GoalsPage extends StatelessWidget {
                 ],
                 if (state.completed.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text('Achieved 🎉', style: AppTypography.headingMedium),
+                  const Text('Achieved 🎉', style: AppTypography.headingMedium),
                   const SizedBox(height: 12),
                   ...state.completed.map((g) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -193,11 +203,11 @@ class _GoalCard extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => BlocProvider.value(
+      builder: (ctx) => BlocProvider.value(
         value: context.read<GoalBloc>(),
         child: Padding(
           padding: EdgeInsets.fromLTRB(
-              24, 24, 24, MediaQuery.of(_).viewInsets.bottom + 24),
+              24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,7 +233,7 @@ class _GoalCard extends StatelessWidget {
                       context
                           .read<GoalBloc>()
                           .add(ContributeToGoal(goal.id, amount));
-                      Navigator.pop(_);
+                      Navigator.pop(ctx);
                     }
                   },
                   child: const Text('Add'),
@@ -288,7 +298,7 @@ class _AddGoalSheetState extends State<_AddGoalSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('New Goal', style: AppTypography.headingMedium),
+          const Text('New Goal', style: AppTypography.headingMedium),
           const SizedBox(height: 16),
           TextField(
             controller: _titleCtrl,

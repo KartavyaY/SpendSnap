@@ -75,7 +75,7 @@ class _BudgetPageState extends State<BudgetPage> {
                 ),
                 const SizedBox(height: 16),
 
-                Text('By Category', style: AppTypography.headingMedium),
+                const Text('By Category', style: AppTypography.headingMedium),
                 const SizedBox(height: 12),
 
                 ...state.budgets.map((b) => Padding(

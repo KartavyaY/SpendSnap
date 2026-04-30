@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/transaction_tile.dart';
@@ -154,13 +153,12 @@ class _TransactionListPageState extends State<TransactionListPage> {
                             const SizedBox(height: 4),
                         itemBuilder: (_, i) {
                           final txn = txns[i];
-                          final cat = categories.firstWhere(
-                            (c) => c.id == txn.categoryId,
-                            orElse: () => null,
-                          );
-                          if (cat == null) {
-                            return const SizedBox.shrink();
-                          }
+                          final cat = categories.isEmpty
+                              ? null
+                              : categories.cast<dynamic>().firstWhere(
+                                    (c) => c.id == txn.categoryId,
+                                    orElse: () => null,
+                                  );
                           return TransactionTile(
                             transaction: txn,
                             category: cat,

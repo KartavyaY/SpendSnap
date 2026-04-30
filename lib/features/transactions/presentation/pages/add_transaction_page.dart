@@ -87,7 +87,11 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     } else {
       context.read<TransactionBloc>().add(AddTransaction(txn));
     }
-    context.pop();
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/transactions');
+    }
   }
 
   @override
@@ -119,7 +123,13 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 widget.editId != null ? 'Edit Transaction' : 'Add Transaction'),
             leading: IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () => context.pop(),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/transactions');
+                }
+              },
             ),
           ),
           body: SingleChildScrollView(
@@ -173,7 +183,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
                   // Category dropdown
                   DropdownButtonFormField<CategoryModel>(
-                    value: _selectedCategory,
+                    initialValue: _selectedCategory,
                     decoration: const InputDecoration(labelText: 'Category'),
                     items: categories
                         .map((c) => DropdownMenuItem(
@@ -234,16 +244,18 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                     title: const Text('Recurring'),
                     subtitle: const Text('Repeat this transaction automatically'),
                     contentPadding: EdgeInsets.zero,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                   ),
 
                   if (_isRecurring) ...[
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: _recurringFreq,
+                      initialValue: _recurringFreq,
                       decoration:
                           const InputDecoration(labelText: 'Frequency'),
                       items: const [
+                        DropdownMenuItem(
+                            value: 'daily', child: Text('Daily')),
                         DropdownMenuItem(
                             value: 'weekly', child: Text('Weekly')),
                         DropdownMenuItem(

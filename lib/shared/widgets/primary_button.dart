@@ -109,15 +109,15 @@ class GoogleSignInButton extends StatelessWidget {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : Row(
+            : const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('G', style: TextStyle(
+                  Text('G', style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: AppColors.danger,
                   )),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
                     'Continue with Google',
                     style: AppTypography.label,

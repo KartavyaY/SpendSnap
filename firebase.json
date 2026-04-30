@@ -1,0 +1,45 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "spendsnap-flutter",
+          "appId": "1:54956787544:android:8b2f89a10bc3083ae8872d",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "spendsnap-flutter",
+          "appId": "1:54956787544:ios:c4b3a983b8b23995e8872d",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "spendsnap-flutter",
+          "appId": "1:54956787544:ios:c4b3a983b8b23995e8872d",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "spendsnap-flutter",
+          "configurations": {
+            "android": "1:54956787544:android:8b2f89a10bc3083ae8872d",
+            "ios": "1:54956787544:ios:c4b3a983b8b23995e8872d",
+            "macos": "1:54956787544:ios:c4b3a983b8b23995e8872d",
+            "web": "1:54956787544:web:33a7ff9edf305115e8872d",
+            "windows": "1:54956787544:web:1b89f3a82431229ee8872d"
+          }
+        }
+      }
+    }
+  }
+}

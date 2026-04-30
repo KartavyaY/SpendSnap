@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/widgets/offline_banner.dart';
@@ -111,16 +110,20 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    int currentIndex = _tabs.indexWhere((t) => location.startsWith(t.$1));
+    int currentIndex = _tabs.indexWhere((t) =>
+        t.$1 == '/' ? location == '/' : location.startsWith(t.$1));
     if (currentIndex < 0) currentIndex = 0;
 
-    return Scaffold(
-      body: Column(
-        children: [
-          const OfflineBanner(),
-          Expanded(child: child),
-        ],
-      ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
+        body: Column(
+          children: [
+            const OfflineBanner(),
+            Expanded(child: child),
+          ],
+        ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
         onDestinationSelected: (i) => context.go(_tabs[i].$1),
@@ -132,6 +135,7 @@ class MainShell extends StatelessWidget {
                 ))
             .toList(),
       ),
+    ),
     );
   }
 }

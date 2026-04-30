@@ -257,7 +257,7 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
           ),
           const SizedBox(height: 16),
 
-          Text('Color', style: AppTypography.label),
+          const Text('Color', style: AppTypography.label),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

@@ -142,7 +142,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                const Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
@@ -168,7 +168,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           mainAxisAlignment:
                               MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Recent',
+                            const Text('Recent',
                                 style: AppTypography.headingMedium),
                             TextButton(
                               onPressed: () =>
@@ -225,7 +225,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Goals',
+                                    const Text('Goals',
                                         style:
                                             AppTypography.headingMedium),
                                     TextButton(

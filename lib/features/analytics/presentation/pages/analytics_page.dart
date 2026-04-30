@@ -100,26 +100,26 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     // Pie chart
                     _ChartSection(
                       title: 'Spending by Category',
-                      child: _CategoryPieChart(
-                          transactions: filtered, categories: categories),
                       interpretation: _buildPieInterpretation(
                           filtered, categories),
+                      child: _CategoryPieChart(
+                          transactions: filtered, categories: categories),
                     ),
                     const SizedBox(height: 24),
 
                     // Bar chart
                     _ChartSection(
                       title: 'Income vs Expense (6 months)',
-                      child: _MonthlyBarChart(transactions: allTxns),
                       interpretation: _buildBarInterpretation(allTxns),
+                      child: _MonthlyBarChart(transactions: allTxns),
                     ),
                     const SizedBox(height: 24),
 
                     // Line chart
                     _ChartSection(
                       title: 'Balance (last 30 days)',
-                      child: _BalanceLineChart(transactions: allTxns),
                       interpretation: _buildLineInterpretation(allTxns),
+                      child: _BalanceLineChart(transactions: allTxns),
                     ),
                   ],
                 ],
@@ -306,7 +306,7 @@ class _MonthlyBarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final groups = <int, BarChartGroupData>[];
+    final groups = <BarChartGroupData>[];
 
     for (int i = 5; i >= 0; i--) {
       final month = DateTime(now.year, now.month - i, 1);

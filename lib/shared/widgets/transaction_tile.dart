@@ -8,7 +8,7 @@ import '../../features/transactions/domain/transaction_model.dart';
 
 class TransactionTile extends StatelessWidget {
   final TransactionModel transaction;
-  final CategoryModel category;
+  final CategoryModel? category;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
   final bool dense;
@@ -16,7 +16,7 @@ class TransactionTile extends StatelessWidget {
   const TransactionTile({
     super.key,
     required this.transaction,
-    required this.category,
+    this.category,
     this.onTap,
     this.onDelete,
     this.dense = false,
@@ -49,7 +49,7 @@ class TransactionTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    category.name,
+                    category?.name ?? 'Unknown',
                     style: AppTypography.bodyMedium.copyWith(
                       fontWeight: FontWeight.w500,
                       color: AppColors.textPrimary,
@@ -139,7 +139,7 @@ class TransactionTile extends StatelessWidget {
 }
 
 class _CategoryIcon extends StatelessWidget {
-  final CategoryModel category;
+  final CategoryModel? category;
   final bool dense;
 
   const _CategoryIcon({required this.category, required this.dense});
@@ -156,7 +156,7 @@ class _CategoryIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = dense ? 36.0 : 44.0;
-    final color = _parseColor(category.color);
+    final color = category != null ? _parseColor(category!.color) : AppColors.textTertiary;
 
     return Container(
       width: size,
@@ -167,7 +167,7 @@ class _CategoryIcon extends StatelessWidget {
       ),
       child: Center(
         child: Text(
-          category.icon,
+          category?.icon ?? '💰',
           style: TextStyle(fontSize: dense ? 16 : 20),
         ),
       ),
