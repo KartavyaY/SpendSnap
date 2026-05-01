@@ -45,10 +45,9 @@ app.*.map.json
 /android/app/release
 
 # Firebase — never commit real keys
-# firebase_options.dart is committed as a placeholder
-# google-services.json and GoogleService-Info.plist contain real keys
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
 
 # Flutter lock file (keep pubspec.lock for reproducible builds)
 # pubspec.lock  <-- keep this
@@ -56,3 +55,6 @@ ios/Runner/GoogleService-Info.plist
 # env files
 .env
 *.env
+
+# Claude Code session data
+.claude/
