@@ -44,7 +44,7 @@ class _OfflineBannerState extends State<OfflineBanner> {
       child: _isOffline
           ? Container(
               key: const ValueKey('offline'),
-              color: AppColors.warning,
+              color: AppColors.warn,
               padding:
                   const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
               child: Row(

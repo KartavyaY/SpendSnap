@@ -63,12 +63,12 @@ class _BudgetPageState extends State<BudgetPage> {
                 Row(
                   children: [
                     const Icon(Icons.calendar_today_outlined,
-                        size: 14, color: AppColors.textTertiary),
+                        size: 14, color: AppColors.stone500),
                     const SizedBox(width: 4),
                     Text(
                       '${state.daysLeftInMonth} days left this month',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textTertiary,
+                        color: AppColors.stone500,
                       ),
                     ),
                   ],
@@ -105,55 +105,53 @@ class _OverallBudgetCard extends StatelessWidget {
     final color = progress >= 1.0
         ? AppColors.danger
         : progress >= 0.7
-            ? AppColors.warning
+            ? AppColors.warn
             : AppColors.success;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.cream50,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderHair),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SpendRing(
-            progress: progress,
-            size: 80,
-            color: color,
-            centerLabel: '${(progress * 100).round()}%',
-            centerSubLabel: 'used',
+          Text(
+            '${CurrencyFormatter.format(state.totalSpent)} of ${CurrencyFormatter.format(state.totalBudget)} spent',
+            style: AppTypography.displayM,
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Overall Budget',
-                    style: AppTypography.label.copyWith(
-                      color: AppColors.textSecondary,
-                    )),
-                const SizedBox(height: 4),
-                Text(
-                  CurrencyFormatter.format(state.totalSpent),
-                  style: AppTypography.headingLarge,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              SpendRing(
+                progress: progress,
+                size: 80,
+                color: color,
+                centerLabel: '${(progress * 100).round()}%',
+                centerSubLabel: 'used',
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Overall Budget',
+                      style: AppTypography.label.copyWith(
+                        color: AppColors.stone600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${CurrencyFormatter.format((state.totalBudget - state.totalSpent).clamp(0, double.infinity))} remaining',
+                      style: AppTypography.caption.copyWith(color: color),
+                    ),
+                  ],
                 ),
-                Text(
-                  'of ${CurrencyFormatter.format(state.totalBudget)}',
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${CurrencyFormatter.format(
-                    (state.totalBudget - state.totalSpent)
-                        .clamp(0, double.infinity),
-                  )} remaining',
-                  style: AppTypography.caption.copyWith(color: color),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -167,27 +165,28 @@ class _BudgetCard extends StatelessWidget {
 
   Color get _progressColor {
     if (budget.isOverBudget) return AppColors.danger;
-    if (budget.isNearLimit) return AppColors.warning;
-    return AppColors.success;
+    if (budget.isNearLimit) return AppColors.warn;
+    return AppColors.stone600;
   }
 
   Color _parseColor(String hex) {
     try {
       return Color(int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
     } catch (_) {
-      return AppColors.primary;
+      return AppColors.orange;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _parseColor(budget.category.color);
+    final categoryColor = _parseColor(budget.category.color);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        color: AppColors.cream50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borderHair),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,8 +197,8 @@ class _BudgetCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
+                  color: categoryColor,
+                  shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: Text(budget.category.icon,
@@ -211,21 +210,26 @@ class _BudgetCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(budget.category.name,
-                        style: AppTypography.bodyMedium.copyWith(
-                          fontWeight: FontWeight.w500,
-                        )),
+                    Text(
+                      budget.category.name,
+                      style: AppTypography.bodyMedium.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.ink,
+                      ),
+                    ),
                     Text(
                       '${CurrencyFormatter.format(budget.spent)} / ${CurrencyFormatter.format(budget.limit)}',
                       style: AppTypography.caption.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.stone600,
                       ),
                     ),
                   ],
                 ),
               ),
               Text(
-                budget.isOverBudget ? 'Over!' : '${(budget.progress * 100).round()}%',
+                budget.isOverBudget
+                    ? 'Over!'
+                    : '${(budget.progress * 100).round()}%',
                 style: AppTypography.label.copyWith(
                   color: _progressColor,
                   fontWeight: FontWeight.w600,
@@ -234,12 +238,13 @@ class _BudgetCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          // Progress bar: cream300 track, category color fill
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
               value: budget.progress.clamp(0.0, 1.0),
-              backgroundColor: _progressColor.withValues(alpha: 0.15),
-              valueColor: AlwaysStoppedAnimation(_progressColor),
+              backgroundColor: AppColors.cream300,
+              valueColor: AlwaysStoppedAnimation(categoryColor),
               minHeight: 8,
             ),
           ),
@@ -247,7 +252,15 @@ class _BudgetCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'Over by ${CurrencyFormatter.format(budget.spent - budget.limit)}',
-              style: AppTypography.caption.copyWith(color: AppColors.danger),
+              style: AppTypography.caption
+                  .copyWith(color: AppColors.danger),
+            ),
+          ] else if (budget.isNearLimit) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Approaching limit',
+              style: AppTypography.caption
+                  .copyWith(color: AppColors.warn),
             ),
           ],
         ],

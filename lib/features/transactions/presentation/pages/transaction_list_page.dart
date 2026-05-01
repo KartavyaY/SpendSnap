@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/date_utils.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/transaction_tile.dart';
@@ -21,89 +23,85 @@ class TransactionListPage extends StatefulWidget {
 }
 
 class _TransactionListPageState extends State<TransactionListPage> {
-  final _searchCtrl = TextEditingController();
   TransactionType? _typeFilter;
 
-  @override
-  void dispose() {
-    _searchCtrl.dispose();
-    super.dispose();
+  void _applyFilter(TransactionType? type) {
+    setState(() => _typeFilter = type);
+    context.read<TransactionBloc>().add(FilterTransactions(
+          typeFilter: type,
+          searchQuery: null,
+        ));
   }
 
-  void _applyFilter() {
-    context.read<TransactionBloc>().add(FilterTransactions(
-          typeFilter: _typeFilter,
-          searchQuery: _searchCtrl.text.isEmpty ? null : _searchCtrl.text,
-        ));
+  Map<String, List<TransactionModel>> _groupByDate(
+      List<TransactionModel> txns) {
+    final map = <String, List<TransactionModel>>{};
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    for (final t in txns) {
+      final d = DateTime(t.date.year, t.date.month, t.date.day);
+      final diff = today.difference(d).inDays;
+      final label = diff == 0
+          ? 'Today'
+          : diff == 1
+              ? 'Yesterday'
+              : AppDateUtils.formatDay(t.date);
+      map.putIfAbsent(label, () => []).add(t);
+    }
+    return map;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Transactions'),
+        automaticallyImplyLeading: false,
+        title: const Text('Activity'),
+        leading: IconButton(
+          icon: const Icon(Icons.search),
+          onPressed: () {
+            // Search action (no-op placeholder)
+          },
+        ),
         actions: [
-          PopupMenuButton<TransactionType?>(
-            icon: const Icon(Icons.filter_list),
-            onSelected: (v) {
-              setState(() => _typeFilter = v);
-              _applyFilter();
+          IconButton(
+            icon: const Icon(Icons.tune_outlined),
+            onPressed: () {
+              // Filter action (no-op placeholder)
             },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: null, child: Text('All')),
-              const PopupMenuItem(
-                  value: TransactionType.income, child: Text('Income')),
-              const PopupMenuItem(
-                  value: TransactionType.expense, child: Text('Expense')),
-            ],
           ),
         ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: TextField(
-              controller: _searchCtrl,
-              decoration: const InputDecoration(
-                hintText: 'Search by note...',
-                prefixIcon: Icon(Icons.search, size: 20),
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              ),
-              onChanged: (_) => _applyFilter(),
+          // Filter chips row
+          SizedBox(
+            height: 52,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              children: [
+                _FilterPill(
+                  label: 'All',
+                  active: _typeFilter == null,
+                  onTap: () => _applyFilter(null),
+                ),
+                const SizedBox(width: 8),
+                _FilterPill(
+                  label: 'Expenses',
+                  active: _typeFilter == TransactionType.expense,
+                  onTap: () => _applyFilter(TransactionType.expense),
+                ),
+                const SizedBox(width: 8),
+                _FilterPill(
+                  label: 'Income',
+                  active: _typeFilter == TransactionType.income,
+                  onTap: () => _applyFilter(TransactionType.income),
+                ),
+              ],
             ),
           ),
-
-          // Filter chips
-          if (_typeFilter != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(
-                children: [
-                  FilterChip(
-                    label: Text(_typeFilter == TransactionType.income
-                        ? 'Income'
-                        : 'Expense'),
-                    selected: true,
-                    onSelected: (_) {
-                      setState(() => _typeFilter = null);
-                      _applyFilter();
-                    },
-                    avatar: Icon(
-                      _typeFilter == TransactionType.income
-                          ? Icons.arrow_upward
-                          : Icons.arrow_downward,
-                      size: 14,
-                      color: _typeFilter == TransactionType.income
-                          ? AppColors.success
-                          : AppColors.danger,
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
           const SizedBox(height: 8),
 
@@ -127,11 +125,11 @@ class _TransactionListPageState extends State<TransactionListPage> {
 
                   if (txns.isEmpty) {
                     return EmptyState(
-                      title: txnState.searchQuery != null
+                      title: _typeFilter != null
                           ? 'No results found'
                           : 'No transactions yet',
-                      description: txnState.searchQuery != null
-                          ? 'Try a different search term.'
+                      description: _typeFilter != null
+                          ? 'Try a different filter.'
                           : 'Add your first transaction to get started.',
                       icon: Icons.receipt_long_outlined,
                       actionLabel: 'Add Transaction',
@@ -145,28 +143,84 @@ class _TransactionListPageState extends State<TransactionListPage> {
                           ? catState.categories
                           : <dynamic>[];
 
-                      return ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        itemCount: txns.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: 4),
-                        itemBuilder: (_, i) {
-                          final txn = txns[i];
-                          final cat = categories.isEmpty
-                              ? null
-                              : categories.cast<dynamic>().firstWhere(
-                                    (c) => c.id == txn.categoryId,
-                                    orElse: () => null,
-                                  );
-                          return TransactionTile(
-                            transaction: txn,
-                            category: cat,
-                            onTap: () => context
-                                .go('/transactions/edit/${txn.id}'),
-                            onDelete: () => context
-                                .read<TransactionBloc>()
-                                .add(DeleteTransaction(txn.id)),
+                      final grouped = _groupByDate(txns);
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                        itemCount: grouped.length,
+                        itemBuilder: (_, groupIndex) {
+                          final label =
+                              grouped.keys.elementAt(groupIndex);
+                          final groupTxns = grouped[label]!;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Eyebrow label
+                                Text(
+                                  label.toUpperCase(),
+                                  style: AppTypography.eyebrow,
+                                ),
+                                const SizedBox(height: 8),
+                                // Grouped card
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.cream50,
+                                    borderRadius:
+                                        BorderRadius.circular(16),
+                                    border: Border.all(
+                                        color: AppColors.borderHair),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16),
+                                  child: Column(
+                                    children: List.generate(
+                                      groupTxns.length,
+                                      (i) {
+                                        final txn = groupTxns[i];
+                                        final cat = categories.isEmpty
+                                            ? null
+                                            : categories
+                                                .cast<dynamic>()
+                                                .firstWhere(
+                                                  (c) =>
+                                                      c.id == txn.categoryId,
+                                                  orElse: () => null,
+                                                );
+                                        final isLast =
+                                            i == groupTxns.length - 1;
+
+                                        return DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            border: isLast
+                                                ? null
+                                                : const Border(
+                                                    bottom: BorderSide(
+                                                      color: AppColors
+                                                          .borderHair,
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                          ),
+                                          child: TransactionTile(
+                                            transaction: txn,
+                                            category: cat,
+                                            onTap: () => context.go(
+                                                '/transactions/edit/${txn.id}'),
+                                            onDelete: () => context
+                                                .read<TransactionBloc>()
+                                                .add(DeleteTransaction(
+                                                    txn.id)),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
                         },
                       );
@@ -182,10 +236,49 @@ class _TransactionListPageState extends State<TransactionListPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.go('/transactions/add'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.orange,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: const Text('Add'),
+      ),
+    );
+  }
+}
+
+class _FilterPill extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _FilterPill({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: active ? AppColors.ink : AppColors.cream200,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: active ? AppColors.paper : AppColors.ink,
+              height: 1.2,
+            ),
+          ),
+        ),
       ),
     );
   }

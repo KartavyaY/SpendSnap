@@ -20,7 +20,7 @@ class InsightCard extends StatelessWidget {
       case InsightType.achievement:
         return AppColors.success;
       case InsightType.projection:
-        return AppColors.warning;
+        return AppColors.warn;
     }
   }
 

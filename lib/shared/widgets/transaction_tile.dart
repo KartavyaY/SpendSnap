@@ -25,67 +25,60 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIncome = transaction.type == TransactionType.income;
-    final amountColor =
-        isIncome ? AppColors.success : AppColors.danger;
     final sign = isIncome ? '+' : '-';
+    final amountColor = isIncome ? AppColors.success : AppColors.ink;
+
+    final subtitle =
+        '${category?.name ?? 'Unknown'} · ${AppDateUtils.formatRelative(transaction.date)}';
 
     Widget tile = InkWell(
       key: ValueKey(transaction.id),
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: dense ? 8 : 12,
-        ),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(
           children: [
-            // Category icon circle
-            _CategoryIcon(category: category, dense: dense),
+            // Category dot
+            _CategoryIcon(category: category),
             const SizedBox(width: 12),
-            // Name + note + date
+            // Name + subtitle
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    category?.name ?? 'Unknown',
-                    style: AppTypography.bodyMedium.copyWith(
+                    transaction.note != null && transaction.note!.isNotEmpty
+                        ? transaction.note!
+                        : (category?.name ?? 'Unknown'),
+                    style: const TextStyle(
+                      fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
+                      color: AppColors.ink,
+                      height: 1.3,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (transaction.note != null &&
-                      transaction.note!.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      transaction.note!,
-                      style: AppTypography.caption.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
                   const SizedBox(height: 2),
                   Text(
-                    AppDateUtils.formatRelative(transaction.date),
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.textTertiary,
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.stone600,
+                      height: 1.4,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            // Amount
+            const SizedBox(width: 8),
+            // Amount in JetBrains Mono
             Text(
               '$sign${CurrencyFormatter.format(transaction.amount)}',
-              style: AppTypography.bodyMedium.copyWith(
+              style: AppTypography.moneyBody.copyWith(
                 color: amountColor,
-                fontWeight: FontWeight.w600,
-                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ],
@@ -103,8 +96,7 @@ class TransactionTile extends StatelessWidget {
             context: context,
             builder: (ctx) => AlertDialog(
               title: const Text('Delete transaction?'),
-              content:
-                  const Text('This action cannot be undone.'),
+              content: const Text('This action cannot be undone.'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx, false),
@@ -125,7 +117,7 @@ class TransactionTile extends StatelessWidget {
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: 20),
           decoration: BoxDecoration(
-            color: AppColors.danger.withValues(alpha: 0.15),
+            color: AppColors.dangerBg,
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Icon(Icons.delete_outline, color: AppColors.danger),
@@ -140,35 +132,35 @@ class TransactionTile extends StatelessWidget {
 
 class _CategoryIcon extends StatelessWidget {
   final CategoryModel? category;
-  final bool dense;
 
-  const _CategoryIcon({required this.category, required this.dense});
+  const _CategoryIcon({required this.category});
 
   Color _parseColor(String hex) {
     try {
       final clean = hex.replaceAll('#', '');
       return Color(int.parse('FF$clean', radix: 16));
     } catch (_) {
-      return AppColors.textTertiary;
+      return AppColors.stone500;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = dense ? 36.0 : 44.0;
-    final color = category != null ? _parseColor(category!.color) : AppColors.textTertiary;
+    final color = category != null
+        ? _parseColor(category!.color)
+        : AppColors.stone500;
 
     return Container(
-      width: size,
-      height: size,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(size / 3),
+        color: color,
+        shape: BoxShape.circle,
       ),
       child: Center(
         child: Text(
           category?.icon ?? '💰',
-          style: TextStyle(fontSize: dense ? 16 : 20),
+          style: const TextStyle(fontSize: 20),
         ),
       ),
     );

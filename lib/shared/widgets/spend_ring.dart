@@ -17,7 +17,7 @@ class SpendRing extends StatelessWidget {
     required this.progress,
     this.size = 80,
     this.color = AppColors.primary,
-    this.backgroundColor = AppColors.bgSecondary,
+    this.backgroundColor = AppColors.cream200,
     this.centerLabel,
     this.centerSubLabel,
     this.strokeWidth = 8,

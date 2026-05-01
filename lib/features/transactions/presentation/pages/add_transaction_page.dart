@@ -7,7 +7,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../../shared/widgets/primary_button.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../categories/domain/category_model.dart';
@@ -94,6 +93,15 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     }
   }
 
+  Color _parseColor(String hex) {
+    try {
+      final clean = hex.replaceAll('#', '');
+      return Color(int.parse('FF$clean', radix: 16));
+    } catch (_) {
+      return AppColors.stone500;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<CategoryBloc, CategoryState>(
@@ -120,7 +128,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         return Scaffold(
           appBar: AppBar(
             title: Text(
-                widget.editId != null ? 'Edit Transaction' : 'Add Transaction'),
+              widget.editId != null ? 'Edit transaction' : 'New transaction',
+            ),
             leading: IconButton(
               icon: const Icon(Icons.close),
               onPressed: () {
@@ -133,146 +142,294 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             ),
           ),
           body: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Amount section
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 24, horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.cream50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.borderHair),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'AMOUNT',
+                          style: AppTypography.eyebrow,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _amountCtrl,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          textAlign: TextAlign.center,
+                          style: AppTypography.moneyDisplay(48),
+                          decoration: const InputDecoration(
+                            hintText: '0',
+                            prefixText: '₹ ',
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            filled: false,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          validator: Validators.amount,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
                   // Type toggle
                   Row(
                     children: [
                       Expanded(
                         child: _TypeButton(
                           label: 'Expense',
-                          icon: Icons.arrow_downward,
                           selected: _type == TransactionType.expense,
-                          color: AppColors.danger,
                           onTap: () =>
                               setState(() => _type = TransactionType.expense),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _TypeButton(
                           label: 'Income',
-                          icon: Icons.arrow_upward,
                           selected: _type == TransactionType.income,
-                          color: AppColors.success,
                           onTap: () =>
                               setState(() => _type = TransactionType.income),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                  // Amount
-                  TextFormField(
-                    controller: _amountCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      labelText: 'Amount',
-                      prefixText: '₹ ',
-                    ),
-                    validator: Validators.amount,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Category dropdown
-                  DropdownButtonFormField<CategoryModel>(
-                    initialValue: _selectedCategory,
-                    decoration: const InputDecoration(labelText: 'Category'),
-                    items: categories
-                        .map((c) => DropdownMenuItem(
-                              value: c,
-                              child: Row(
-                                children: [
-                                  Text(c.icon),
-                                  const SizedBox(width: 8),
-                                  Text(c.name),
-                                ],
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setState(() => _selectedCategory = v),
-                    validator: (_) =>
-                        _selectedCategory == null ? 'Select a category' : null,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Date picker
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _date,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (picked != null) setState(() => _date = picked);
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Date',
-                        prefixIcon: Icon(Icons.calendar_today_outlined),
-                        suffixIcon: Icon(Icons.arrow_drop_down),
+                  // Category grid
+                  if (categories.isNotEmpty) ...[
+                    const Text('CATEGORY', style: AppTypography.eyebrow),
+                    const SizedBox(height: 10),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 1.8,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
                       ),
-                      child: Text(AppDateUtils.formatDay(_date)),
+                      itemCount: categories.length,
+                      itemBuilder: (_, i) {
+                        final cat = categories[i];
+                        final isSelected = _selectedCategory?.id == cat.id;
+                        final catColor = _parseColor(cat.color);
+                        return GestureDetector(
+                          onTap: () =>
+                              setState(() => _selectedCategory = cat),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.ink
+                                  : AppColors.cream100,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.ink
+                                    : AppColors.borderHair,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? AppColors.paper.withValues(alpha: 0.2)
+                                        : catColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      cat.icon,
+                                      style:
+                                          const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    cat.name,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: isSelected
+                                          ? AppColors.paper
+                                          : AppColors.ink,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Note
-                  TextFormField(
-                    controller: _noteCtrl,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'Note (optional)',
-                      prefixIcon: Icon(Icons.notes_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Recurring toggle
-                  SwitchListTile(
-                    value: _isRecurring,
-                    onChanged: (v) => setState(() => _isRecurring = v),
-                    title: const Text('Recurring'),
-                    subtitle: const Text('Repeat this transaction automatically'),
-                    contentPadding: EdgeInsets.zero,
-                    activeThumbColor: AppColors.primary,
-                  ),
-
-                  if (_isRecurring) ...[
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: _recurringFreq,
-                      decoration:
-                          const InputDecoration(labelText: 'Frequency'),
-                      items: const [
-                        DropdownMenuItem(
-                            value: 'daily', child: Text('Daily')),
-                        DropdownMenuItem(
-                            value: 'weekly', child: Text('Weekly')),
-                        DropdownMenuItem(
-                            value: 'monthly', child: Text('Monthly')),
-                      ],
-                      onChanged: (v) =>
-                          setState(() => _recurringFreq = v),
-                    ),
+                    const SizedBox(height: 20),
                   ],
+
+                  // Details card
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.cream50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.borderHair),
+                    ),
+                    child: Column(
+                      children: [
+                        // Note field
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                          child: TextFormField(
+                            controller: _noteCtrl,
+                            maxLines: 2,
+                            decoration: const InputDecoration(
+                              hintText: 'Note (optional)',
+                              prefixIcon:
+                                  Icon(Icons.notes_outlined, size: 18),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              filled: false,
+                            ),
+                          ),
+                        ),
+                        const Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: AppColors.borderHair),
+                        // Date picker row
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _date,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime.now(),
+                            );
+                            if (picked != null) setState(() => _date = picked);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_today_outlined,
+                                    size: 18, color: AppColors.stone600),
+                                const SizedBox(width: 12),
+                                Text(
+                                  AppDateUtils.formatDay(_date),
+                                  style: AppTypography.bodyMedium,
+                                ),
+                                const Spacer(),
+                                const Icon(Icons.chevron_right,
+                                    size: 18, color: AppColors.stone500),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: AppColors.borderHair),
+                        // Recurring toggle
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          child: SwitchListTile(
+                            value: _isRecurring,
+                            onChanged: (v) =>
+                                setState(() => _isRecurring = v),
+                            title: const Text('Recurring'),
+                            subtitle: const Text(
+                                'Repeat this transaction automatically'),
+                            contentPadding: EdgeInsets.zero,
+                            activeThumbColor: AppColors.orange,
+                          ),
+                        ),
+                        if (_isRecurring) ...[
+                          const Divider(
+                              height: 1,
+                              thickness: 1,
+                              color: AppColors.borderHair),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _recurringFreq,
+                              decoration: const InputDecoration(
+                                labelText: 'Frequency',
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                filled: false,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                    value: 'daily', child: Text('Daily')),
+                                DropdownMenuItem(
+                                    value: 'weekly', child: Text('Weekly')),
+                                DropdownMenuItem(
+                                    value: 'monthly',
+                                    child: Text('Monthly')),
+                              ],
+                              onChanged: (v) =>
+                                  setState(() => _recurringFreq = v),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
 
                   const SizedBox(height: 32),
 
-                  PrimaryButton(
-                    label: widget.editId != null
-                        ? 'Update Transaction'
-                        : 'Add Transaction',
-                    onPressed: _submit,
+                  // Save button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.orange,
+                        foregroundColor: AppColors.paper,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        widget.editId != null
+                            ? 'Update transaction'
+                            : 'Save transaction',
+                        style: AppTypography.label.copyWith(
+                          color: AppColors.paper,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -286,16 +443,12 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
 class _TypeButton extends StatelessWidget {
   final String label;
-  final IconData icon;
   final bool selected;
-  final Color color;
   final VoidCallback onTap;
 
   const _TypeButton({
     required this.label,
-    required this.icon,
     required this.selected,
-    required this.color,
     required this.onTap,
   });
 
@@ -304,30 +457,21 @@ class _TypeButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        duration: const Duration(milliseconds: 150),
+        height: 40,
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.12) : AppColors.bgSecondary,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? color : AppColors.border,
-            width: selected ? 1.5 : 1,
-          ),
+          color: selected ? AppColors.ink : AppColors.cream200,
+          borderRadius: BorderRadius.circular(999),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 16, color: selected ? color : AppColors.textTertiary),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: AppTypography.label.copyWith(
-                color: selected ? color : AppColors.textSecondary,
-                fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.w400,
-              ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: selected ? AppColors.paper : AppColors.stone600,
             ),
-          ],
+          ),
         ),
       ),
     );
