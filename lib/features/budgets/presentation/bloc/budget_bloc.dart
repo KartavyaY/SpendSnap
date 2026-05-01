@@ -15,32 +15,41 @@ class BudgetBloc extends Bloc<BudgetEvent, BudgetState> {
   BudgetBloc(this._categoryRepo, this._transactionRepo)
       : super(const BudgetInitial()) {
     on<LoadBudgets>(_onLoad);
+    on<SetBudgetLimit>(_onSetLimit);
   }
 
   Future<void> _onLoad(LoadBudgets event, Emitter<BudgetState> emit) async {
     emit(const BudgetLoading());
+    await _fetchAndEmit(emit);
+  }
+
+  Future<void> _onSetLimit(
+    SetBudgetLimit event,
+    Emitter<BudgetState> emit,
+  ) async {
+    try {
+      await _categoryRepo.updateBudgetLimit(event.categoryId, event.limit);
+      await _fetchAndEmit(emit);
+    } catch (e) {
+      emit(BudgetError(e.toString()));
+    }
+  }
+
+  Future<void> _fetchAndEmit(Emitter<BudgetState> emit) async {
     try {
       final now = DateTime.now();
-      final monthStart = AppDateUtils.startOfMonth(now);
-      final monthEnd = AppDateUtils.endOfMonth(now);
-
       final categories = await _categoryRepo.fetchCategories();
       final transactions = await _transactionRepo.fetchTransactions(
-        from: monthStart,
-        to: monthEnd,
+        from: AppDateUtils.startOfMonth(now),
+        to: AppDateUtils.endOfMonth(now),
       );
 
       final budgets = _buildBudgets(categories, transactions);
-      final totalBudget =
-          budgets.fold(0.0, (sum, b) => sum + b.limit);
-      final totalSpent = budgets.fold(0.0, (sum, b) => sum + b.spent);
-      final daysLeft = AppDateUtils.daysInMonth(now) - now.day;
-
       emit(BudgetLoaded(
         budgets: budgets,
-        totalBudget: totalBudget,
-        totalSpent: totalSpent,
-        daysLeftInMonth: daysLeft,
+        totalBudget: budgets.fold(0.0, (s, b) => s + b.limit),
+        totalSpent: budgets.fold(0.0, (s, b) => s + b.spent),
+        daysLeftInMonth: AppDateUtils.daysInMonth(now) - now.day,
       ));
     } catch (e) {
       emit(BudgetError(e.toString()));
@@ -55,17 +64,11 @@ class BudgetBloc extends Bloc<BudgetEvent, BudgetState> {
     for (final cat in categories) {
       final limit = cat.monthlyLimit;
       if (limit == null || limit <= 0) continue;
-
       final spent = transactions
           .where((t) =>
               t.categoryId == cat.id && t.type == TransactionType.expense)
           .fold(0.0, (sum, t) => sum + t.amount);
-
-      result.add(BudgetModel(
-        category: cat,
-        spent: spent,
-        limit: limit,
-      ));
+      result.add(BudgetModel(category: cat, spent: spent, limit: limit));
     }
     return result;
   }

@@ -8,12 +8,14 @@ class TransactionRepository {
 
   TransactionRepository(this._firestore, this._auth);
 
-  String get _uid => _auth.currentUser!.uid;
+  String? get _uid => _auth.currentUser?.uid;
 
   Stream<List<TransactionModel>> watchTransactions() {
+    final uid = _uid;
+    if (uid == null) return Stream.value(const []);
     return _firestore
         .collection('transactions')
-        .where('uid', isEqualTo: _uid)
+        .where('uid', isEqualTo: uid)
         .orderBy('date', descending: true)
         .snapshots()
         .map((snap) =>
@@ -24,9 +26,11 @@ class TransactionRepository {
     DateTime? from,
     DateTime? to,
   }) async {
+    final uid = _uid;
+    if (uid == null) return const [];
     Query query = _firestore
         .collection('transactions')
-        .where('uid', isEqualTo: _uid)
+        .where('uid', isEqualTo: uid)
         .orderBy('date', descending: true);
 
     if (from != null) {

@@ -1,7 +1,9 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../shared/widgets/offline_banner.dart';
+import '../../core/theme/app_colors.dart';
 
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
@@ -10,10 +12,10 @@ import '../../features/auth/presentation/pages/signup_page.dart';
 import '../../features/transactions/presentation/pages/transaction_list_page.dart';
 import '../../features/transactions/presentation/pages/add_transaction_page.dart';
 import '../../features/categories/presentation/pages/categories_page.dart';
-import '../../features/budgets/presentation/pages/budget_page.dart';
-import '../../features/goals/presentation/pages/goals_page.dart';
+import '../../features/budgets/presentation/pages/plan_page.dart';
 import '../../features/analytics/presentation/pages/analytics_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
+import '../../features/auth/presentation/pages/me_page.dart';
 
 class AppRouter {
   final AuthBloc authBloc;
@@ -70,11 +72,16 @@ class AppRouter {
             ),
             GoRoute(
               path: '/budgets',
-              builder: (_, __) => const BudgetPage(),
+              builder: (_, state) {
+                final tab = int.tryParse(
+                        state.uri.queryParameters['tab'] ?? '0') ??
+                    0;
+                return PlanPage(initialTab: tab);
+              },
             ),
             GoRoute(
-              path: '/goals',
-              builder: (_, __) => const GoalsPage(),
+              path: '/me',
+              builder: (_, __) => const MePage(),
             ),
             GoRoute(
               path: '/analytics',
@@ -100,19 +107,25 @@ class MainShell extends StatelessWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
-  static const _tabs = [
-    ('/', Icons.home_outlined, Icons.home, 'Home'),
-    ('/transactions', Icons.receipt_long_outlined, Icons.receipt_long, 'Transactions'),
-    ('/analytics', Icons.bar_chart_outlined, Icons.bar_chart, 'Analytics'),
-    ('/goals', Icons.savings_outlined, Icons.savings, 'Goals'),
-  ];
+  // Tab routes: index 2 is the snap button (no route)
+  static const _tabRoutes = ['/', '/transactions', null, '/budgets', '/me'];
+
+  int _currentIndex(String location) {
+    // Check tabs in order, skip index 2 (snap button)
+    for (int i = 0; i < _tabRoutes.length; i++) {
+      if (i == 2) continue;
+      final route = _tabRoutes[i]!;
+      if (route == '/' ? location == '/' : location.startsWith(route)) {
+        return i;
+      }
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    int currentIndex = _tabs.indexWhere((t) =>
-        t.$1 == '/' ? location == '/' : location.startsWith(t.$1));
-    if (currentIndex < 0) currentIndex = 0;
+    final currentIndex = _currentIndex(location);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -124,18 +137,160 @@ class MainShell extends StatelessWidget {
             Expanded(child: child),
           ],
         ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: (i) => context.go(_tabs[i].$1),
-        destinations: _tabs
-            .map((t) => NavigationDestination(
-                  icon: Icon(t.$2),
-                  selectedIcon: Icon(t.$3),
-                  label: t.$4,
-                ))
-            .toList(),
+        bottomNavigationBar: _SpendSnapTabBar(
+          currentIndex: currentIndex,
+          onTap: (i) {
+            if (i == 2) {
+              context.go('/transactions/add');
+            } else {
+              context.go(_tabRoutes[i]!);
+            }
+          },
+        ),
       ),
-    ),
+    );
+  }
+}
+
+class _SpendSnapTabBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _SpendSnapTabBar({
+    required this.currentIndex,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final barHeight =
+        64.0 + (bottomPadding > 0 ? bottomPadding : 16.0);
+
+    return SizedBox(
+      height: barHeight,
+      child: ClipRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xEBFAF7F2),
+              border: Border(
+                top: BorderSide(color: AppColors.borderHair, width: 1),
+              ),
+            ),
+            padding: EdgeInsets.only(
+              top: 8,
+              bottom: bottomPadding > 0 ? bottomPadding : 8,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _TabItem(
+                  icon: Icons.home_outlined,
+                  label: 'Home',
+                  active: currentIndex == 0,
+                  onTap: () => onTap(0),
+                ),
+                _TabItem(
+                  icon: Icons.receipt_long_outlined,
+                  label: 'Activity',
+                  active: currentIndex == 1,
+                  onTap: () => onTap(1),
+                ),
+                // Center snap button
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: GestureDetector(
+                      onTap: () => onTap(2),
+                      child: Transform.translate(
+                        offset: const Offset(0, -8),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: AppColors.orange,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    AppColors.orange.withValues(alpha: 0.4),
+                                blurRadius: 16,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                _TabItem(
+                  icon: Icons.pie_chart_outline_outlined,
+                  label: 'Plan',
+                  active: currentIndex == 3,
+                  onTap: () => onTap(3),
+                ),
+                _TabItem(
+                  icon: Icons.person_outline,
+                  label: 'Me',
+                  active: currentIndex == 4,
+                  onTap: () => onTap(4),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TabItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _TabItem({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? AppColors.ink : AppColors.stone500;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 22, color: color),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: color,
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

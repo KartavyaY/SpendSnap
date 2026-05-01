@@ -8,12 +8,14 @@ class GoalRepository {
 
   GoalRepository(this._firestore, this._auth);
 
-  String get _uid => _auth.currentUser!.uid;
+  String? get _uid => _auth.currentUser?.uid;
 
   Stream<List<GoalModel>> watchGoals() {
+    final uid = _uid;
+    if (uid == null) return Stream.value(const []);
     return _firestore
         .collection('goals')
-        .where('uid', isEqualTo: _uid)
+        .where('uid', isEqualTo: uid)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) => snap.docs.map(GoalModel.fromFirestore).toList());
@@ -34,14 +36,31 @@ class GoalRepository {
   }
 
   Future<void> contributeToGoal(String goalId, double amount) async {
-    await _firestore.collection('goals').doc(goalId).update({
-      'currentAmount': FieldValue.increment(amount),
+    final ref = _firestore.collection('goals').doc(goalId);
+    await _firestore.runTransaction((txn) async {
+      final snap = await txn.get(ref);
+      final data = snap.data()!;
+      final target = (data['targetAmount'] as num).toDouble();
+      final current = (data['currentAmount'] as num?)?.toDouble() ?? 0.0;
+      final remaining = (target - current).clamp(0.0, double.infinity);
+      final capped = amount.clamp(0.0, remaining); // never exceed goal
+      final newAmount = current + capped;
+
+      final updates = <String, dynamic>{'currentAmount': newAmount};
+      if (newAmount >= target) {
+        updates['status'] = GoalStatus.completed.name;
+      }
+      txn.update(ref, updates);
     });
   }
 
   Future<void> markCompleted(String goalId) async {
+    // Fetch current targetAmount so we can set currentAmount = targetAmount.
+    final doc = await _firestore.collection('goals').doc(goalId).get();
+    final target = (doc.data()?['targetAmount'] as num?)?.toDouble() ?? 0.0;
     await _firestore.collection('goals').doc(goalId).update({
       'status': GoalStatus.completed.name,
+      'currentAmount': target, // force 100%
     });
   }
 

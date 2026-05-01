@@ -33,6 +33,13 @@ class MarkGoalComplete extends GoalEvent {
   List<Object?> get props => [goalId];
 }
 
+class UpdateGoal extends GoalEvent {
+  final GoalModel goal;
+  const UpdateGoal(this.goal);
+  @override
+  List<Object?> get props => [goal];
+}
+
 class DeleteGoal extends GoalEvent {
   final String id;
   const DeleteGoal(this.id);

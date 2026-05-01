@@ -8,20 +8,24 @@ class CategoryRepository {
 
   CategoryRepository(this._firestore, this._auth);
 
-  String get _uid => _auth.currentUser!.uid;
+  String? get _uid => _auth.currentUser?.uid;
 
   Stream<List<CategoryModel>> watchCategories() {
+    final uid = _uid;
+    if (uid == null) return Stream.value(const []);
     return _firestore
         .collection('categories')
-        .where('uid', isEqualTo: _uid)
+        .where('uid', isEqualTo: uid)
         .snapshots()
         .map((snap) => snap.docs.map(CategoryModel.fromFirestore).toList());
   }
 
   Future<List<CategoryModel>> fetchCategories() async {
+    final uid = _uid;
+    if (uid == null) return const [];
     final snap = await _firestore
         .collection('categories')
-        .where('uid', isEqualTo: _uid)
+        .where('uid', isEqualTo: uid)
         .get();
     return snap.docs.map(CategoryModel.fromFirestore).toList();
   }

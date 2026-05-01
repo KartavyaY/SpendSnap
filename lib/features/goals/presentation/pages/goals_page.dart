@@ -35,28 +35,7 @@ class GoalsPage extends StatelessWidget {
         builder: (context, state) {
           if (state is GoalLoading) return const LoadingIndicator();
 
-          if (state is GoalError) {
-            return EmptyState(
-              title: 'Create a Savings Plan',
-              description: 'Set a goal, track your progress, and reach it faster.',
-              icon: Icons.savings_outlined,
-              actionLabel: 'Create Savings Plan',
-              onAction: () => _showAddGoalSheet(context),
-            );
-          }
-
-          if (state is GoalLoaded) {
-            if (state.goals.isEmpty) {
-              return EmptyState(
-                title: 'Create a Savings Plan',
-                description:
-                    'Set a goal, track your progress, and reach it faster.',
-                icon: Icons.savings_outlined,
-                actionLabel: 'Create Savings Plan',
-                onAction: () => _showAddGoalSheet(context),
-              );
-            }
-
+          if (state is GoalLoaded && state.goals.isNotEmpty) {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -81,7 +60,14 @@ class GoalsPage extends StatelessWidget {
             );
           }
 
-          return const SizedBox.shrink();
+          return EmptyState(
+            title: 'Create a Savings Plan',
+            description:
+                'Set a goal, track your progress, and reach it faster.',
+            icon: Icons.savings_outlined,
+            actionLabel: 'Create Savings Plan',
+            onAction: () => _showAddGoalSheet(context),
+          );
         },
       ),
     );
@@ -172,9 +158,9 @@ class _GoalCard extends StatelessWidget {
             PopupMenuButton(
               itemBuilder: (_) => [
                 const PopupMenuItem(
-                    value: 'contribute', child: Text('Add contribution')),
+                    value: 'contribute', child: Text('Add Contribution')),
                 const PopupMenuItem(
-                    value: 'complete', child: Text('Mark complete')),
+                    value: 'complete', child: Text('Mark Complete')),
                 const PopupMenuItem(
                     value: 'delete',
                     child: Text('Delete',

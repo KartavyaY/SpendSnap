@@ -1,29 +1,46 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../data/category_repository.dart';
 import '../../domain/category_model.dart';
 import 'category_event.dart';
 import 'category_state.dart';
 
+class _CatsUpdated extends CategoryEvent {
+  final List<CategoryModel> cats;
+  const _CatsUpdated(this.cats);
+  @override
+  List<Object?> get props => [cats];
+}
+
+class _CatStreamError extends CategoryEvent {
+  final String message;
+  const _CatStreamError(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
 class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
   final CategoryRepository _repository;
+  StreamSubscription<List<CategoryModel>>? _sub;
 
   CategoryBloc(this._repository) : super(const CategoryInitial()) {
     on<LoadCategories>(_onLoad);
+    on<_CatsUpdated>((e, emit) => emit(CategoryLoaded(e.cats)));
+    on<_CatStreamError>((e, emit) => emit(CategoryError(e.message)));
     on<AddCategory>(_onAdd);
     on<UpdateCategory>(_onUpdate);
     on<DeleteCategory>(_onDelete);
     on<UpdateBudgetLimit>(_onUpdateLimit);
   }
 
-  Future<void> _onLoad(
-    LoadCategories event,
-    Emitter<CategoryState> emit,
-  ) async {
+  void _onLoad(LoadCategories event, Emitter<CategoryState> emit) {
+    _sub?.cancel();
     emit(const CategoryLoading());
-    await emit.forEach<List<CategoryModel>>(
-      _repository.watchCategories(),
-      onData: CategoryLoaded.new,
-      onError: (err, _) => CategoryError(err.toString()),
+    _sub = _repository.watchCategories().listen(
+      (cats) => add(_CatsUpdated(cats)),
+      onError: (Object err, _) => add(_CatStreamError(err.toString())),
     );
   }
 
@@ -66,5 +83,11 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
     } catch (e) {
       emit(CategoryError(e.toString()));
     }
+  }
+
+  @override
+  Future<void> close() {
+    _sub?.cancel();
+    return super.close();
   }
 }

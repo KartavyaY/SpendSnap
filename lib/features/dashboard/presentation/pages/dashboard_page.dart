@@ -11,7 +11,6 @@ import '../../../../shared/widgets/spend_ring.dart';
 import '../../../../shared/widgets/transaction_tile.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
-import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../categories/domain/category_model.dart';
 import '../../../categories/presentation/bloc/category_bloc.dart';
 import '../../../categories/presentation/bloc/category_state.dart';
@@ -23,6 +22,9 @@ import '../../../insights/presentation/bloc/insight_event.dart';
 import '../../../insights/presentation/bloc/insight_state.dart';
 import '../../../insights/presentation/widgets/insight_card.dart';
 import '../../../transactions/domain/transaction_model.dart';
+import '../../../budgets/presentation/bloc/budget_bloc.dart';
+import '../../../budgets/presentation/bloc/budget_event.dart';
+import '../../../budgets/presentation/bloc/budget_state.dart';
 import '../../../transactions/presentation/bloc/transaction_bloc.dart';
 import '../../../transactions/presentation/bloc/transaction_state.dart';
 
@@ -37,7 +39,12 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
+    _loadBudgets();
     _triggerInsights();
+  }
+
+  void _loadBudgets() {
+    context.read<BudgetBloc>().add(const LoadBudgets());
   }
 
   void _triggerInsights() {
@@ -53,28 +60,18 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final authState = context.read<AuthBloc>().state;
-    final name = authState is Authenticated
-        ? authState.user.displayName.split(' ').first
-        : '';
-
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Hello, $name 👋',
-              style: AppTypography.headingMedium,
-            ),
-            Text(
-              AppDateUtils.formatMonth(DateTime.now()),
-              style: AppTypography.caption
-                  .copyWith(color: AppColors.textSecondary),
-            ),
-          ],
+        automaticallyImplyLeading: false,
+        title: Text(
+          'SpendSnap',
+          style: AppTypography.headingLarge,
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {},
+          ),
           PopupMenuButton(
             icon: const Icon(Icons.more_vert),
             itemBuilder: (_) => [
@@ -94,7 +91,7 @@ class _DashboardPageState extends State<DashboardPage> {
         },
         child: RefreshIndicator(
           onRefresh: () async => _triggerInsights(),
-          color: AppColors.primary,
+          color: AppColors.orange,
           child: BlocBuilder<TransactionBloc, TransactionState>(
             builder: (context, txnState) {
               if (txnState is TransactionLoading) {
@@ -113,8 +110,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
                   final now = DateTime.now();
                   final monthStart = AppDateUtils.startOfMonth(now);
-                  final thisMonth = transactions.where(
-                      (t) => t.date.isAfter(monthStart));
+                  final thisMonth =
+                      transactions.where((t) => t.date.isAfter(monthStart));
 
                   final income = thisMonth
                       .where((t) => t.type == TransactionType.income)
@@ -122,17 +119,38 @@ class _DashboardPageState extends State<DashboardPage> {
                   final expense = thisMonth
                       .where((t) => t.type == TransactionType.expense)
                       .fold(0.0, (s, t) => s + t.amount);
-                  final net = income - expense;
+
+                  // Days left in month
+                  final daysInMonth = AppDateUtils.daysInMonth(now);
+                  final daysLeft = daysInMonth - now.day;
+
+                  return BlocBuilder<BudgetBloc, BudgetState>(
+                    builder: (context, budgetState) {
+                      // Use real budget remaining; fall back to income-expense
+                      // if no budgets configured yet.
+                      final budgetLeft = budgetState is BudgetLoaded &&
+                              budgetState.totalBudget > 0
+                          ? (budgetState.totalBudget - budgetState.totalSpent)
+                              .clamp(0.0, double.infinity)
+                          : (income - expense).clamp(0.0, double.infinity);
+
+                  // Month label
+                  final monthLabel =
+                      '${_monthName(now.month).toUpperCase()}, SO FAR';
 
                   final recent = transactions.take(5).toList();
 
                   return ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                     children: [
-                      // Balance card
-                      _BalanceCard(
-                          income: income, expense: expense, net: net),
-                      const SizedBox(height: 16),
+                      // Hero ink card
+                      _HeroCard(
+                        expense: expense,
+                        budgetLeft: budgetLeft,
+                        daysLeft: daysLeft,
+                        monthLabel: monthLabel,
+                      ),
+                      const SizedBox(height: 24),
 
                       // Top insight
                       BlocBuilder<InsightBloc, InsightState>(
@@ -142,19 +160,13 @@ class _DashboardPageState extends State<DashboardPage> {
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('Top Insight',
-                                        style: AppTypography.headingMedium),
-                                  ],
-                                ),
+                                const Text('Top Insight',
+                                    style: AppTypography.headingMedium),
                                 const SizedBox(height: 8),
                                 InsightCard(
                                     insight: insightState.topInsight!,
                                     compact: false),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 24),
                               ],
                             );
                           }
@@ -162,17 +174,17 @@ class _DashboardPageState extends State<DashboardPage> {
                         },
                       ),
 
-                      // Recent transactions
+                      // This week section
                       if (recent.isNotEmpty) ...[
                         Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Recent',
-                                style: AppTypography.headingMedium),
+                            const Text(
+                              'THIS WEEK',
+                              style: AppTypography.eyebrow,
+                            ),
                             TextButton(
-                              onPressed: () =>
-                                  context.go('/transactions'),
+                              onPressed: () => context.go('/transactions'),
                               child: const Text('See all'),
                             ),
                           ],
@@ -180,13 +192,15 @@ class _DashboardPageState extends State<DashboardPage> {
                         const SizedBox(height: 8),
                         Container(
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: AppColors.cream50,
                             borderRadius: BorderRadius.circular(16),
-                            border:
-                                Border.all(color: AppColors.border),
+                            border: Border.all(color: AppColors.borderHair),
                           ),
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 16),
                           child: Column(
-                            children: recent.map((txn) {
+                            children: List.generate(recent.length, (i) {
+                              final txn = recent[i];
                               final cat = categories.firstWhere(
                                 (c) => c.id == txn.categoryId,
                                 orElse: () => categories.isEmpty
@@ -199,17 +213,29 @@ class _DashboardPageState extends State<DashboardPage> {
                                       )
                                     : categories.first,
                               );
-                              return TransactionTile(
-                                transaction: txn,
-                                category: cat,
-                                dense: true,
-                                onTap: () => context.go(
-                                    '/transactions/edit/${txn.id}'),
+                              final isLast = i == recent.length - 1;
+                              return DecoratedBox(
+                                decoration: BoxDecoration(
+                                  border: isLast
+                                      ? null
+                                      : const Border(
+                                          bottom: BorderSide(
+                                            color: AppColors.borderHair,
+                                            width: 1,
+                                          ),
+                                        ),
+                                ),
+                                child: TransactionTile(
+                                  transaction: txn,
+                                  category: cat,
+                                  onTap: () => context
+                                      .go('/transactions/edit/${txn.id}'),
+                                ),
                               );
-                            }).toList(),
+                            }),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 24),
                       ],
 
                       // Active goals carousel
@@ -218,19 +244,17 @@ class _DashboardPageState extends State<DashboardPage> {
                           if (goalState is GoalLoaded &&
                               goalState.active.isNotEmpty) {
                             return Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     const Text('Goals',
-                                        style:
-                                            AppTypography.headingMedium),
+                                        style: AppTypography.headingMedium),
                                     TextButton(
                                       onPressed: () =>
-                                          context.go('/goals'),
+                                          context.go('/budgets?tab=1'),
                                       child: const Text('See all'),
                                     ),
                                   ],
@@ -255,6 +279,8 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ],
                   );
+                    },
+                  );
                 },
               );
             },
@@ -263,144 +289,99 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
+
+  static String _monthName(int month) {
+    const names = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    return names[month - 1];
+  }
 }
 
-class _BalanceCard extends StatelessWidget {
-  final double income;
+class _HeroCard extends StatelessWidget {
   final double expense;
-  final double net;
+  final double budgetLeft;
+  final int daysLeft;
+  final String monthLabel;
 
-  const _BalanceCard(
-      {required this.income, required this.expense, required this.net});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.primaryLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Net Balance',
-            style: AppTypography.label.copyWith(
-              color: Colors.white70,
-            ),
-          ),
-          const SizedBox(height: 4),
-          _AnimatedAmount(amount: net),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _BalanceStat(
-                  label: 'Income',
-                  amount: income,
-                  icon: Icons.arrow_upward,
-                  color: Colors.white,
-                ),
-              ),
-              Container(width: 1, height: 40, color: Colors.white24),
-              Expanded(
-                child: _BalanceStat(
-                  label: 'Expense',
-                  amount: expense,
-                  icon: Icons.arrow_downward,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AnimatedAmount extends StatefulWidget {
-  final double amount;
-  const _AnimatedAmount({required this.amount});
-
-  @override
-  State<_AnimatedAmount> createState() => _AnimatedAmountState();
-}
-
-class _AnimatedAmountState extends State<_AnimatedAmount> {
-  double _oldAmount = 0;
-
-  @override
-  void didUpdateWidget(_AnimatedAmount oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _oldAmount = oldWidget.amount;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: _oldAmount, end: widget.amount),
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeOutCubic,
-      builder: (_, value, __) => Text(
-        CurrencyFormatter.format(value),
-        style: AppTypography.displayLarge.copyWith(
-          color: Colors.white,
-          fontSize: 28,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        ),
-      ),
-    );
-  }
-}
-
-class _BalanceStat extends StatelessWidget {
-  final String label;
-  final double amount;
-  final IconData icon;
-  final Color color;
-
-  const _BalanceStat({
-    required this.label,
-    required this.amount,
-    required this.icon,
-    required this.color,
+  const _HeroCard({
+    required this.expense,
+    required this.budgetLeft,
+    required this.daysLeft,
+    required this.monthLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.ink,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: Colors.white24,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 14, color: color),
+          // Eyebrow
+          Text(
+            monthLabel,
+            style: AppTypography.eyebrow
+                .copyWith(color: AppColors.cream300),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: AppTypography.caption
-                        .copyWith(color: Colors.white70)),
-                Text(
-                  CurrencyFormatter.formatCompact(amount),
-                  style: AppTypography.label.copyWith(color: color),
+          const SizedBox(height: 10),
+          // Big amount
+          Text(
+            CurrencyFormatter.format(expense),
+            style: AppTypography.moneyDisplay(52, color: AppColors.paper),
+          ),
+          const SizedBox(height: 24),
+          const Divider(
+            color: Color(0x1FFDFBF7),
+            height: 1,
+            thickness: 1,
+          ),
+          const SizedBox(height: 20),
+          // Stats row
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Budget left',
+                      style: AppTypography.caption
+                          .copyWith(color: AppColors.cream300),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      CurrencyFormatter.format(budgetLeft),
+                      style: AppTypography.moneyBody
+                          .copyWith(color: AppColors.paper),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Days left',
+                      style: AppTypography.caption
+                          .copyWith(color: AppColors.cream300),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$daysLeft',
+                      style: AppTypography.headingLarge
+                          .copyWith(color: AppColors.paper),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -418,9 +399,9 @@ class _GoalChip extends StatelessWidget {
       width: 120,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.cream50,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderHair),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
