@@ -108,9 +108,13 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
 
     if (event.searchQuery != null && event.searchQuery!.isNotEmpty) {
       final query = event.searchQuery!.toLowerCase();
-      filtered = filtered
-          .where((t) => t.note?.toLowerCase().contains(query) ?? false)
-          .toList();
+      filtered = filtered.where((t) {
+        if (t.note?.toLowerCase().contains(query) ?? false) return true;
+        if (t.amount.toString().contains(query)) return true;
+        final catName = event.categoryNames?[t.categoryId]?.toLowerCase();
+        if (catName != null && catName.contains(query)) return true;
+        return false;
+      }).toList();
     }
 
     emit(TransactionLoaded(

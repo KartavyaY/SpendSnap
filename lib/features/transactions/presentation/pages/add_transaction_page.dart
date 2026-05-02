@@ -165,22 +165,35 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           style: AppTypography.eyebrow,
                         ),
                         const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _amountCtrl,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          textAlign: TextAlign.center,
-                          style: AppTypography.moneyDisplay(48),
-                          decoration: const InputDecoration(
-                            hintText: '0',
-                            prefixText: '₹ ',
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            filled: false,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          validator: Validators.amount,
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            TextFormField(
+                              controller: _amountCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(
+                                  decimal: true),
+                              textAlign: TextAlign.center,
+                              style: AppTypography.moneyDisplay(48),
+                              decoration: const InputDecoration(
+                                hintText: '0',
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                filled: false,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              validator: Validators.amount,
+                            ),
+                            Positioned(
+                              left: 0,
+                              child: Text(
+                                '₹',
+                                style: AppTypography.moneyDisplay(48).copyWith(
+                                  color: Colors.black45,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

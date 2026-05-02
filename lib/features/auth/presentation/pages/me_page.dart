@@ -176,14 +176,15 @@ class _InfoRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(label, style: AppTypography.bodyMedium),
-          const Spacer(),
-          Flexible(
+          SizedBox(
+            width: 180,
+            child: Text(label, style: AppTypography.bodyMedium),
+          ),
+          Expanded(
             child: Text(
               value,
               style: AppTypography.bodyMedium
                   .copyWith(color: AppColors.stone500),
-              textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
             ),
           ),

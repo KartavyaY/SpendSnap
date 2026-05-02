@@ -16,6 +16,7 @@ import '../../../categories/presentation/bloc/category_bloc.dart';
 import '../../../categories/presentation/bloc/category_state.dart';
 import '../../../goals/domain/goal_model.dart';
 import '../../../goals/presentation/bloc/goal_bloc.dart';
+import '../../../goals/presentation/bloc/goal_event.dart';
 import '../../../goals/presentation/bloc/goal_state.dart';
 import '../../../insights/presentation/bloc/insight_bloc.dart';
 import '../../../insights/presentation/bloc/insight_event.dart';
@@ -261,7 +262,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ),
                                 const SizedBox(height: 8),
                                 SizedBox(
-                                  height: 120,
+                                  height: 140,
                                   child: ListView.separated(
                                     scrollDirection: Axis.horizontal,
                                     itemCount: goalState.active.length,
@@ -393,36 +394,120 @@ class _GoalChip extends StatelessWidget {
   final GoalModel goal;
   const _GoalChip({required this.goal});
 
+  Color get _ringColor {
+    final p = goal.progress;
+    if (p >= 0.7) return AppColors.success;
+    if (p >= 0.3) return AppColors.warn;
+    return AppColors.danger;
+  }
+
+  void _showContributeSheet(BuildContext context) {
+    final ctrl = TextEditingController();
+    final remaining = goal.remaining;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => BlocProvider.value(
+        value: context.read<GoalBloc>(),
+        child: StatefulBuilder(
+          builder: (ctx, setSheet) {
+            String? errorText;
+            void submit() {
+              final amount = double.tryParse(ctrl.text.trim());
+              if (amount == null || amount <= 0) {
+                setSheet(() => errorText = 'Enter a valid amount');
+                return;
+              }
+              context.read<GoalBloc>().add(ContributeToGoal(goal.id, amount));
+              Navigator.pop(ctx);
+            }
+
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                  24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Add to ${goal.title}',
+                      style: AppTypography.headingMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${CurrencyFormatter.format(remaining)} remaining',
+                    style: AppTypography.caption
+                        .copyWith(color: AppColors.stone500),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: ctrl,
+                    autofocus: true,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    onSubmitted: (_) => submit(),
+                    onChanged: (_) {
+                      if (errorText != null) setSheet(() => errorText = null);
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Amount',
+                      prefixText: '₹ ',
+                      errorText: errorText,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: submit,
+                      child: const Text('Add'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 120,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.cream50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderHair),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SpendRing(
-            progress: goal.progress,
-            size: 52,
-            strokeWidth: 5,
-            centerLabel: '${(goal.progress * 100).round()}%',
-          ),
-          const SizedBox(height: 8),
-          Text(
-            goal.title,
-            style: AppTypography.caption.copyWith(
-              fontWeight: FontWeight.w500,
+    return GestureDetector(
+      onTap: goal.isCompleted ? null : () => _showContributeSheet(context),
+      child: Container(
+        width: 120,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.cream50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.borderHair),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SpendRing(
+              progress: goal.progress,
+              size: 72,
+              strokeWidth: 8,
+              centerLabel: '${(goal.progress * 100).round()}%',
+              color: _ringColor,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              goal.title,
+              style: AppTypography.caption.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

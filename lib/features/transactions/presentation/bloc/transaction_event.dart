@@ -38,6 +38,8 @@ class FilterTransactions extends TransactionEvent {
   final DateTime? from;
   final DateTime? to;
   final String? searchQuery;
+  /// categoryId → category name, used for search matching.
+  final Map<String, String>? categoryNames;
 
   const FilterTransactions({
     this.typeFilter,
@@ -45,9 +47,10 @@ class FilterTransactions extends TransactionEvent {
     this.from,
     this.to,
     this.searchQuery,
+    this.categoryNames,
   });
 
   @override
   List<Object?> get props =>
-      [typeFilter, categoryFilter, from, to, searchQuery];
+      [typeFilter, categoryFilter, from, to, searchQuery, categoryNames];
 }

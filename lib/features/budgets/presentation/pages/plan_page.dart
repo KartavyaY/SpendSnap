@@ -463,9 +463,10 @@ class _GoalCard extends StatelessWidget {
   const _GoalCard({required this.goal});
 
   Color get _ringColor {
-    if (goal.isCompleted) return AppColors.success;
-    if (goal.progress >= 0.75) return AppColors.primaryLight;
-    return AppColors.primary;
+    final p = goal.progress;
+    if (p >= 0.7) return AppColors.success;
+    if (p >= 0.3) return AppColors.warn;
+    return AppColors.danger;
   }
 
   @override

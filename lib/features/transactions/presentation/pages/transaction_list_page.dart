@@ -8,6 +8,7 @@ import '../../../../core/utils/date_utils.dart';
 import '../../../../shared/widgets/empty_state.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/transaction_tile.dart';
+import '../../../categories/domain/category_model.dart';
 import '../../../categories/presentation/bloc/category_bloc.dart';
 import '../../../categories/presentation/bloc/category_state.dart';
 import '../bloc/transaction_bloc.dart';
@@ -24,13 +25,250 @@ class TransactionListPage extends StatefulWidget {
 
 class _TransactionListPageState extends State<TransactionListPage> {
   TransactionType? _typeFilter;
+  String? _categoryFilter;
+  DateTime? _from;
+  DateTime? _to;
+  bool _searchActive = false;
+  final _searchCtrl = TextEditingController();
 
-  void _applyFilter(TransactionType? type) {
-    setState(() => _typeFilter = type);
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  void _applyFilter({
+    TransactionType? type,
+    String? categoryId,
+    DateTime? from,
+    DateTime? to,
+    String? search,
+  }) {
+    final catState = context.read<CategoryBloc>().state;
+    final categoryNames = catState is CategoryLoaded
+        ? {for (final c in catState.categories) c.id: c.name}
+        : <String, String>{};
+
     context.read<TransactionBloc>().add(FilterTransactions(
           typeFilter: type,
-          searchQuery: null,
+          categoryFilter: categoryId,
+          from: from,
+          to: to,
+          searchQuery: search,
+          categoryNames: categoryNames,
         ));
+  }
+
+  void _onTypeChip(TransactionType? type) {
+    setState(() => _typeFilter = type);
+    _applyFilter(
+      type: type,
+      categoryId: _categoryFilter,
+      from: _from,
+      to: _to,
+      search: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
+    );
+  }
+
+  void _onSearch(String query) {
+    _applyFilter(
+      type: _typeFilter,
+      categoryId: _categoryFilter,
+      from: _from,
+      to: _to,
+      search: query.trim().isEmpty ? null : query.trim(),
+    );
+  }
+
+  void _clearSearch() {
+    _searchCtrl.clear();
+    setState(() => _searchActive = false);
+    _applyFilter(
+      type: _typeFilter,
+      categoryId: _categoryFilter,
+      from: _from,
+      to: _to,
+    );
+  }
+
+  bool get _hasActiveFilters =>
+      _categoryFilter != null || _from != null || _to != null;
+
+  void _showFilterSheet(BuildContext context, List<CategoryModel> categories) {
+    // Local state copies for the sheet
+    TransactionType? sheetType = _typeFilter;
+    String? sheetCat = _categoryFilter;
+    DateTime? sheetFrom = _from;
+    DateTime? sheetTo = _to;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.fromLTRB(
+              24, 20, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.cream300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Filters', style: AppTypography.headingMedium),
+                  TextButton(
+                    onPressed: () {
+                      setSheet(() {
+                        sheetType = null;
+                        sheetCat = null;
+                        sheetFrom = null;
+                        sheetTo = null;
+                      });
+                    },
+                    child: const Text('Reset'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Type
+              const Text('TYPE', style: AppTypography.eyebrow),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _FilterPill(
+                    label: 'All',
+                    active: sheetType == null,
+                    onTap: () => setSheet(() => sheetType = null),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Expenses',
+                    active: sheetType == TransactionType.expense,
+                    onTap: () =>
+                        setSheet(() => sheetType = TransactionType.expense),
+                  ),
+                  const SizedBox(width: 8),
+                  _FilterPill(
+                    label: 'Income',
+                    active: sheetType == TransactionType.income,
+                    onTap: () =>
+                        setSheet(() => sheetType = TransactionType.income),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Category
+              if (categories.isNotEmpty) ...[
+                const Text('CATEGORY', style: AppTypography.eyebrow),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String?>(
+                  value: sheetCat,
+                  decoration: InputDecoration(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: AppColors.borderHair),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: AppColors.borderHair),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.cream50,
+                  ),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('All categories')),
+                    ...categories.map((c) => DropdownMenuItem(
+                          value: c.id,
+                          child: Text('${c.icon} ${c.name}'),
+                        )),
+                  ],
+                  onChanged: (v) => setSheet(() => sheetCat = v),
+                ),
+                const SizedBox(height: 20),
+              ],
+
+              // Date range
+              const Text('DATE RANGE', style: AppTypography.eyebrow),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DatePickerButton(
+                      label: 'From',
+                      date: sheetFrom,
+                      onPick: (d) => setSheet(() => sheetFrom = d),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _DatePickerButton(
+                      label: 'To',
+                      date: sheetTo,
+                      onPick: (d) => setSheet(() => sheetTo = d),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+
+              // Apply
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.ink,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _typeFilter = sheetType;
+                      _categoryFilter = sheetCat;
+                      _from = sheetFrom;
+                      _to = sheetTo;
+                    });
+                    _applyFilter(
+                      type: sheetType,
+                      categoryId: sheetCat,
+                      from: sheetFrom,
+                      to: sheetTo,
+                      search: _searchCtrl.text.trim().isEmpty
+                          ? null
+                          : _searchCtrl.text.trim(),
+                    );
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Apply'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Map<String, List<TransactionModel>> _groupByDate(
@@ -56,26 +294,66 @@ class _TransactionListPageState extends State<TransactionListPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Activity'),
+        title: _searchActive
+            ? TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                onChanged: _onSearch,
+                style: AppTypography.bodyMedium,
+                decoration: const InputDecoration(
+                  hintText: 'Search transactions…',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              )
+            : const Text('Activity'),
         leading: IconButton(
-          icon: const Icon(Icons.search),
+          icon: Icon(_searchActive ? Icons.close : Icons.search),
           onPressed: () {
-            // Search action (no-op placeholder)
+            if (_searchActive) {
+              _clearSearch();
+            } else {
+              setState(() => _searchActive = true);
+            }
           },
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.tune_outlined),
-            onPressed: () {
-              // Filter action (no-op placeholder)
-            },
+          Builder(
+            builder: (ctx) => Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.tune_outlined),
+                  onPressed: () {
+                    final catState =
+                        context.read<CategoryBloc>().state;
+                    final cats = catState is CategoryLoaded
+                        ? catState.categories
+                        : <CategoryModel>[];
+                    _showFilterSheet(context, cats);
+                  },
+                ),
+                if (_hasActiveFilters)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.orange,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Filter chips row
+          // Type filter chips
           SizedBox(
             height: 52,
             child: ListView(
@@ -85,19 +363,19 @@ class _TransactionListPageState extends State<TransactionListPage> {
                 _FilterPill(
                   label: 'All',
                   active: _typeFilter == null,
-                  onTap: () => _applyFilter(null),
+                  onTap: () => _onTypeChip(null),
                 ),
                 const SizedBox(width: 8),
                 _FilterPill(
                   label: 'Expenses',
                   active: _typeFilter == TransactionType.expense,
-                  onTap: () => _applyFilter(TransactionType.expense),
+                  onTap: () => _onTypeChip(TransactionType.expense),
                 ),
                 const SizedBox(width: 8),
                 _FilterPill(
                   label: 'Income',
                   active: _typeFilter == TransactionType.income,
-                  onTap: () => _applyFilter(TransactionType.income),
+                  onTap: () => _onTypeChip(TransactionType.income),
                 ),
               ],
             ),
@@ -125,10 +403,14 @@ class _TransactionListPageState extends State<TransactionListPage> {
 
                   if (txns.isEmpty) {
                     return EmptyState(
-                      title: _typeFilter != null
+                      title: _typeFilter != null ||
+                              _hasActiveFilters ||
+                              _searchCtrl.text.isNotEmpty
                           ? 'No results found'
                           : 'No transactions yet',
-                      description: _typeFilter != null
+                      description: _typeFilter != null ||
+                              _hasActiveFilters ||
+                              _searchCtrl.text.isNotEmpty
                           ? 'Try a different filter.'
                           : 'Add your first transaction to get started.',
                       icon: Icons.receipt_long_outlined,
@@ -158,13 +440,11 @@ class _TransactionListPageState extends State<TransactionListPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Eyebrow label
                                 Text(
                                   label.toUpperCase(),
                                   style: AppTypography.eyebrow,
                                 ),
                                 const SizedBox(height: 8),
-                                // Grouped card
                                 Container(
                                   decoration: BoxDecoration(
                                     color: AppColors.cream50,
@@ -245,6 +525,8 @@ class _TransactionListPageState extends State<TransactionListPage> {
   }
 }
 
+// ── Filter pill ────────────────────────────────────────────────
+
 class _FilterPill extends StatelessWidget {
   final String label;
   final bool active;
@@ -278,6 +560,68 @@ class _FilterPill extends StatelessWidget {
               height: 1.2,
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Date picker button ─────────────────────────────────────────
+
+class _DatePickerButton extends StatelessWidget {
+  final String label;
+  final DateTime? date;
+  final ValueChanged<DateTime?> onPick;
+
+  const _DatePickerButton({
+    required this.label,
+    required this.date,
+    required this.onPick,
+  });
+
+  String get _display {
+    if (date == null) return label;
+    return '${date!.day}/${date!.month}/${date!.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: date ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+        );
+        if (picked != null) onPick(picked);
+      },
+      onLongPress: date != null ? () => onPick(null) : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: date != null ? AppColors.ink : AppColors.cream50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderHair),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              size: 14,
+              color: date != null ? AppColors.paper : AppColors.stone500,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _display,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: date != null ? AppColors.paper : AppColors.stone500,
+              ),
+            ),
+          ],
         ),
       ),
     );
