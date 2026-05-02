@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../domain/insight_model.dart';
+import '../bloc/insight_bloc.dart';
+import '../bloc/insight_event.dart';
 
 class InsightCard extends StatelessWidget {
   final Insight insight;
   final bool compact;
+  final bool dismissible;
+  final bool restorable;
 
-  const InsightCard({super.key, required this.insight, this.compact = false});
+  const InsightCard({
+    super.key,
+    required this.insight,
+    this.compact = false,
+    this.dismissible = true,
+    this.restorable = false,
+  });
 
   Color get _typeColor {
+    // "insufficient data" insight uses neutral color
+    if (insight.severity == InsightSeverity.info) return AppColors.stone500;
     switch (insight.type) {
       case InsightType.warning:
         return AppColors.danger;
@@ -25,6 +38,7 @@ class InsightCard extends StatelessWidget {
   }
 
   IconData get _typeIcon {
+    if (insight.severity == InsightSeverity.info) return Icons.hourglass_top_outlined;
     switch (insight.type) {
       case InsightType.warning:
         return Icons.warning_amber_rounded;
@@ -63,6 +77,32 @@ class InsightCard extends StatelessWidget {
                   ),
                 ),
               ),
+              if (dismissible)
+                GestureDetector(
+                  onTap: () => context
+                      .read<InsightBloc>()
+                      .add(DismissInsight(insight.id)),
+                  child: Icon(Icons.close, size: 16, color: AppColors.stone500),
+                ),
+              if (restorable)
+                GestureDetector(
+                  onTap: () => context
+                      .read<InsightBloc>()
+                      .add(RestoreInsight(insight.id)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.restore, size: 14, color: AppColors.stone500),
+                      const SizedBox(width: 3),
+                      Text(
+                        'Restore',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.stone500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
           if (!compact) ...[

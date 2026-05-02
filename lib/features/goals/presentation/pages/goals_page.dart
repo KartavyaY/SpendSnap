@@ -156,6 +156,7 @@ class _GoalCard extends StatelessWidget {
           ),
           if (!goal.isCompleted)
             PopupMenuButton(
+              constraints: const BoxConstraints(minWidth: 0),
               itemBuilder: (_) => [
                 const PopupMenuItem(
                     value: 'contribute', child: Text('Add Contribution')),

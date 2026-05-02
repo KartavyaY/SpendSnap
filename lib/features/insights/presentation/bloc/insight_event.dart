@@ -18,3 +18,17 @@ class GenerateInsights extends InsightEvent {
   @override
   List<Object?> get props => [transactions, categories];
 }
+
+class DismissInsight extends InsightEvent {
+  final String id;
+  const DismissInsight(this.id);
+  @override
+  List<Object?> get props => [id];
+}
+
+class RestoreInsight extends InsightEvent {
+  final String id;
+  const RestoreInsight(this.id);
+  @override
+  List<Object?> get props => [id];
+}

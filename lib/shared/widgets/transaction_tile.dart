@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/category_icon.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../core/utils/date_utils.dart';
@@ -158,9 +159,10 @@ class _CategoryIcon extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Center(
-        child: Text(
-          category?.icon ?? '💰',
-          style: const TextStyle(fontSize: 20),
+        child: Icon(
+          CategoryIcon.resolve(category?.icon ?? 'salary'),
+          color: Colors.white,
+          size: 18,
         ),
       ),
     );

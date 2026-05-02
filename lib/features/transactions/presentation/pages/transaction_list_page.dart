@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/category_icon.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../shared/widgets/empty_state.dart';
@@ -201,7 +202,13 @@ class _TransactionListPageState extends State<TransactionListPage> {
                     const DropdownMenuItem(value: null, child: Text('All categories')),
                     ...categories.map((c) => DropdownMenuItem(
                           value: c.id,
-                          child: Text('${c.icon} ${c.name}'),
+                          child: Row(
+                            children: [
+                              Icon(CategoryIcon.resolve(c.icon), size: 16),
+                              const SizedBox(width: 8),
+                              Text(c.name),
+                            ],
+                          ),
                         )),
                   ],
                   onChanged: (v) => setSheet(() => sheetCat = v),
@@ -428,7 +435,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
                       final grouped = _groupByDate(txns);
 
                       return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                         itemCount: grouped.length,
                         itemBuilder: (_, groupIndex) {
                           final label =

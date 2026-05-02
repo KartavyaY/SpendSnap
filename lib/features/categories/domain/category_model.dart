@@ -26,7 +26,7 @@ class CategoryModel extends Equatable {
       id: doc.id,
       uid: data['uid'] as String,
       name: data['name'] as String,
-      icon: data['icon'] as String? ?? '📦',
+      icon: data['icon'] as String? ?? 'other',
       color: data['color'] as String? ?? '#888780',
       monthlyLimit: (data['monthlyLimit'] as num?)?.toDouble(),
       isDefault: data['isDefault'] as bool? ?? false,
@@ -68,12 +68,12 @@ class CategoryModel extends Equatable {
 }
 
 const defaultCategories = [
-  {'name': 'Food', 'icon': '🍔', 'color': '#D85A30'},
-  {'name': 'Transport', 'icon': '🚗', 'color': '#378ADD'},
-  {'name': 'Shopping', 'icon': '🛍️', 'color': '#D4537E'},
-  {'name': 'Bills', 'icon': '📄', 'color': '#BA7517'},
-  {'name': 'Entertainment', 'icon': '🎬', 'color': '#7F77DD'},
-  {'name': 'Health', 'icon': '🏥', 'color': '#1D9E75'},
-  {'name': 'Salary', 'icon': '💰', 'color': '#639922'},
-  {'name': 'Other', 'icon': '📦', 'color': '#888780'},
+  {'name': 'Food', 'icon': 'food', 'color': '#D85A30'},
+  {'name': 'Transport', 'icon': 'transport', 'color': '#378ADD'},
+  {'name': 'Shopping', 'icon': 'shopping', 'color': '#D4537E'},
+  {'name': 'Bills', 'icon': 'bills', 'color': '#BA7517'},
+  {'name': 'Entertainment', 'icon': 'entertainment', 'color': '#7F77DD'},
+  {'name': 'Health', 'icon': 'health', 'color': '#1D9E75'},
+  {'name': 'Salary', 'icon': 'salary', 'color': '#639922'},
+  {'name': 'Other', 'icon': 'other', 'color': '#888780'},
 ];

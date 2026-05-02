@@ -156,6 +156,29 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: isDark ? AppColors.darkBgPrimary : AppColors.paper,
+        surfaceTintColor: Colors.transparent,
+        elevation: 4,
+        shadowColor: Colors.black.withValues(alpha: 0.12),
+        menuPadding: const EdgeInsets.symmetric(vertical: 6),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : AppColors.borderHair,
+          ),
+        ),
+        textStyle: AppTypography.bodyMedium.copyWith(
+          color: isDark ? AppColors.darkTextPrimary : AppColors.ink,
+        ),
+        labelTextStyle: WidgetStateProperty.all(
+          AppTypography.bodyMedium.copyWith(
+            color: isDark ? AppColors.darkTextPrimary : AppColors.ink,
+          ),
+        ),
+      ),
     );
   }
 }

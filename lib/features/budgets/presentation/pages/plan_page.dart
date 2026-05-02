@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/category_icon.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../shared/widgets/empty_state.dart';
@@ -369,9 +370,10 @@ class _BudgetCard extends StatelessWidget {
                   color: categoryColor,
                   shape: BoxShape.circle,
                 ),
-                child: Center(
-                  child: Text(budget.category.icon,
-                      style: const TextStyle(fontSize: 18)),
+                child: Icon(
+                  CategoryIcon.resolve(budget.category.icon),
+                  color: Colors.white,
+                  size: 18,
                 ),
               ),
               const SizedBox(width: 12),
@@ -407,6 +409,7 @@ class _BudgetCard extends StatelessWidget {
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert,
                     size: 18, color: AppColors.stone500),
+                constraints: const BoxConstraints(minWidth: 0),
                 itemBuilder: (_) => const [
                   PopupMenuItem(value: 'edit', child: Text('Edit limit')),
                   PopupMenuItem(
@@ -463,10 +466,12 @@ class _GoalCard extends StatelessWidget {
   const _GoalCard({required this.goal});
 
   Color get _ringColor {
-    final p = goal.progress;
-    if (p >= 0.7) return AppColors.success;
-    if (p >= 0.3) return AppColors.warn;
-    return AppColors.danger;
+    final p = goal.progress.clamp(0.0, 1.0);
+    if (p <= 0.5) {
+      return Color.lerp(AppColors.danger, AppColors.warn, p * 2)!;
+    } else {
+      return Color.lerp(AppColors.warn, AppColors.success, (p - 0.5) * 2)!;
+    }
   }
 
   @override
@@ -530,6 +535,7 @@ class _GoalCard extends StatelessWidget {
                 ),
               ),
               PopupMenuButton<String>(
+                constraints: const BoxConstraints(minWidth: 0),
                 itemBuilder: (_) => [
                   if (!goal.isCompleted) ...[
                     const PopupMenuItem(
@@ -952,8 +958,7 @@ class _SetBudgetSheetState extends State<_SetBudgetSheet> {
           if (isEditing) ...[
             Row(
               children: [
-                Text(widget.initial!.icon,
-                    style: const TextStyle(fontSize: 24)),
+                Icon(CategoryIcon.resolve(widget.initial!.icon), size: 22),
                 const SizedBox(width: 12),
                 Text(
                   widget.initial!.name,
@@ -975,7 +980,7 @@ class _SetBudgetSheetState extends State<_SetBudgetSheet> {
                           value: c,
                           child: Row(
                             children: [
-                              Text(c.icon),
+                              Icon(CategoryIcon.resolve(c.icon), size: 16),
                               const SizedBox(width: 8),
                               Text(c.name),
                             ],

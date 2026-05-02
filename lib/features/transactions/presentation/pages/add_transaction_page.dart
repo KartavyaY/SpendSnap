@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/category_icon.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/date_utils.dart';
 import '../../../../core/utils/validators.dart';
@@ -273,10 +274,12 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                                     shape: BoxShape.circle,
                                   ),
                                   child: Center(
-                                    child: Text(
-                                      cat.icon,
-                                      style:
-                                          const TextStyle(fontSize: 13),
+                                    child: Icon(
+                                      CategoryIcon.resolve(cat.icon),
+                                      size: 13,
+                                      color: isSelected
+                                          ? AppColors.paper
+                                          : Colors.white,
                                     ),
                                   ),
                                 ),

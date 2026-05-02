@@ -17,12 +17,15 @@ class InsightLoading extends InsightState {
 
 class InsightLoaded extends InsightState {
   final List<Insight> insights;
-  const InsightLoaded(this.insights);
+  final List<Insight> dismissedInsights;
+
+  const InsightLoaded(this.insights,
+      {this.dismissedInsights = const []});
 
   Insight? get topInsight => insights.isNotEmpty ? insights.first : null;
 
   @override
-  List<Object?> get props => [insights];
+  List<Object?> get props => [insights, dismissedInsights];
 }
 
 class InsightError extends InsightState {

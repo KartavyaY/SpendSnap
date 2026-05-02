@@ -18,6 +18,7 @@ import '../../../goals/domain/goal_model.dart';
 import '../../../goals/presentation/bloc/goal_bloc.dart';
 import '../../../goals/presentation/bloc/goal_event.dart';
 import '../../../goals/presentation/bloc/goal_state.dart';
+import '../../../insights/domain/insight_model.dart';
 import '../../../insights/presentation/bloc/insight_bloc.dart';
 import '../../../insights/presentation/bloc/insight_event.dart';
 import '../../../insights/presentation/bloc/insight_state.dart';
@@ -42,6 +43,175 @@ class _DashboardPageState extends State<DashboardPage> {
     super.initState();
     _loadBudgets();
     _triggerInsights();
+  }
+
+  void _showNotificationSheet(BuildContext context) {
+    final budgetState = context.read<BudgetBloc>().state;
+    final insightBloc = context.read<InsightBloc>();
+
+    final alerts = budgetState is BudgetLoaded
+        ? budgetState.budgets
+            .where((b) => b.isOverBudget || b.isNearLimit)
+            .toList()
+        : [];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => BlocProvider.value(
+        value: insightBloc,
+        child: DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          builder: (_, scrollCtrl) => BlocBuilder<InsightBloc, InsightState>(
+            builder: (bCtx, insightState) {
+              final insights = insightState is InsightLoaded
+                  ? insightState.insights
+                  : <Insight>[];
+              final dismissed = insightState is InsightLoaded
+                  ? insightState.dismissedInsights
+                  : <Insight>[];
+
+              return ListView(
+                controller: scrollCtrl,
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                children: [
+                  // Handle
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: AppColors.cream300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const Text('Notifications',
+                      style: AppTypography.headingMedium),
+                  const SizedBox(height: 20),
+
+                  // ── Budget alerts ──────────────────────────────
+                  if (alerts.isNotEmpty) ...[
+                    const Text('BUDGET ALERTS',
+                        style: AppTypography.eyebrow),
+                    const SizedBox(height: 10),
+                    ...alerts.map((b) {
+                      final isOver = b.isOverBudget;
+                      final color =
+                          isOver ? AppColors.danger : AppColors.warn;
+                      final icon = isOver
+                          ? Icons.warning_rounded
+                          : Icons.error_outline_rounded;
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.07),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                              color: color.withValues(alpha: 0.25)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(icon, color: color, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    isOver
+                                        ? '${b.category.name} over budget'
+                                        : '${b.category.name} near limit',
+                                    style: AppTypography.label.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    isOver
+                                        ? 'Spent ${CurrencyFormatter.format(b.spent)} of ${CurrencyFormatter.format(b.limit)} limit'
+                                        : '${(b.progress * 100).round()}% used — ${CurrencyFormatter.format(b.remaining)} left',
+                                    style: AppTypography.caption.copyWith(
+                                        color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // ── Insights ───────────────────────────────────
+                  if (insights.isNotEmpty) ...[
+                    const Text('INSIGHTS', style: AppTypography.eyebrow),
+                    const SizedBox(height: 10),
+                    ...insights.map((insight) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child:
+                              InsightCard(insight: insight, compact: false),
+                        )),
+                  ],
+
+                  if (alerts.isEmpty && insights.isEmpty &&
+                      dismissed.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Column(
+                          children: [
+                            Icon(Icons.check_circle_outline,
+                                size: 48, color: AppColors.success),
+                            SizedBox(height: 12),
+                            Text('All clear!',
+                                style: AppTypography.headingMedium),
+                            SizedBox(height: 4),
+                            Text('No alerts or insights right now.',
+                                style: AppTypography.bodyMedium),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // ── Dismissed insights ─────────────────────────
+                  if (dismissed.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Text(
+                      'DISMISSED (${dismissed.length})',
+                      style: AppTypography.eyebrow,
+                    ),
+                    const SizedBox(height: 10),
+                    ...dismissed.map((insight) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: InsightCard(
+                            insight: insight,
+                            compact: false,
+                            dismissible: false,
+                            restorable: true,
+                          ),
+                        )),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   void _loadBudgets() {
@@ -69,12 +239,58 @@ class _DashboardPageState extends State<DashboardPage> {
           style: AppTypography.headingLarge,
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
+          Builder(
+            builder: (ctx) {
+              final budgetState = ctx.watch<BudgetBloc>().state;
+              final insightState = ctx.watch<InsightBloc>().state;
+
+              final alertCount = budgetState is BudgetLoaded
+                  ? budgetState.budgets
+                      .where((b) => b.isOverBudget || b.isNearLimit)
+                      .length
+                  : 0;
+              final insightCount = insightState is InsightLoaded
+                  ? insightState.insights.length
+                  : 0;
+              final total = alertCount + insightCount;
+
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () => _showNotificationSheet(ctx),
+                  ),
+                  if (total > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: const BoxDecoration(
+                          color: AppColors.danger,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            total > 9 ? '9+' : '$total',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              height: 1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           PopupMenuButton(
             icon: const Icon(Icons.more_vert),
+            constraints: const BoxConstraints(minWidth: 0),
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'logout', child: Text('Log out')),
             ],
@@ -142,7 +358,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   final recent = transactions.take(5).toList();
 
                   return ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                     children: [
                       // Hero ink card
                       _HeroCard(
@@ -395,10 +611,12 @@ class _GoalChip extends StatelessWidget {
   const _GoalChip({required this.goal});
 
   Color get _ringColor {
-    final p = goal.progress;
-    if (p >= 0.7) return AppColors.success;
-    if (p >= 0.3) return AppColors.warn;
-    return AppColors.danger;
+    final p = goal.progress.clamp(0.0, 1.0);
+    if (p <= 0.5) {
+      return Color.lerp(AppColors.danger, AppColors.warn, p * 2)!;
+    } else {
+      return Color.lerp(AppColors.warn, AppColors.success, (p - 0.5) * 2)!;
+    }
   }
 
   void _showContributeSheet(BuildContext context) {

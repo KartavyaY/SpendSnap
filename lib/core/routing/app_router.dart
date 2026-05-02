@@ -48,28 +48,24 @@ class AppRouter {
         ShellRoute(
           builder: (context, state, child) => MainShell(child: child),
           routes: [
-            GoRoute(
-              path: '/',
-              builder: (_, __) => const DashboardPage(),
-            ),
+            GoRoute(path: '/', builder: (_, __) => const DashboardPage()),
             GoRoute(
               path: '/transactions',
               builder: (_, __) => const TransactionListPage(),
+              routes: [
+                GoRoute(
+                  path: 'add',
+                  builder: (_, __) => const AddTransactionPage(),
+                ),
+                GoRoute(
+                  path: 'edit/:id',
+                  builder: (_, state) => AddTransactionPage(
+                    editId: state.pathParameters['id'],
+                  ),
+                ),
+              ],
             ),
-            GoRoute(
-              path: '/transactions/add',
-              builder: (_, __) => const AddTransactionPage(),
-            ),
-            GoRoute(
-              path: '/transactions/edit/:id',
-              builder: (_, state) => AddTransactionPage(
-                editId: state.pathParameters['id'],
-              ),
-            ),
-            GoRoute(
-              path: '/categories',
-              builder: (_, __) => const CategoriesPage(),
-            ),
+            GoRoute(path: '/categories', builder: (_, __) => const CategoriesPage()),
             GoRoute(
               path: '/budgets',
               builder: (_, state) {
@@ -79,14 +75,8 @@ class AppRouter {
                 return PlanPage(initialTab: tab);
               },
             ),
-            GoRoute(
-              path: '/me',
-              builder: (_, __) => const MePage(),
-            ),
-            GoRoute(
-              path: '/analytics',
-              builder: (_, __) => const AnalyticsPage(),
-            ),
+            GoRoute(path: '/me', builder: (_, __) => const MePage()),
+            GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsPage()),
           ],
         ),
       ],
@@ -107,11 +97,9 @@ class MainShell extends StatelessWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
-  // Tab routes: index 2 is the snap button (no route)
   static const _tabRoutes = ['/', '/transactions', null, '/budgets', '/me'];
 
   int _currentIndex(String location) {
-    // Check tabs in order, skip index 2 (snap button)
     for (int i = 0; i < _tabRoutes.length; i++) {
       if (i == 2) continue;
       final route = _tabRoutes[i]!;
@@ -204,29 +192,25 @@ class _SpendSnapTabBar extends StatelessWidget {
                     alignment: Alignment.center,
                     child: GestureDetector(
                       onTap: () => onTap(2),
-                      child: Transform.translate(
-                        offset: const Offset(0, -8),
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: AppColors.orange,
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    AppColors.orange.withValues(alpha: 0.4),
-                                blurRadius: 16,
-                                spreadRadius: 0,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt_outlined,
-                            color: Colors.white,
-                            size: 22,
-                          ),
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.orange,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.orange.withValues(alpha: 0.4),
+                              blurRadius: 16,
+                              spreadRadius: 0,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt_outlined,
+                          color: Colors.white,
+                          size: 22,
                         ),
                       ),
                     ),

@@ -49,8 +49,11 @@ class _LoginPageState extends State<LoginPage> {
       builder: (context, state) {
         final isLoading = state is AuthLoading;
 
-        return Scaffold(
-          body: SafeArea(
+        return GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: Scaffold(
+            body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Form(
@@ -214,7 +217,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
-        );
+        ));
       },
     );
   }

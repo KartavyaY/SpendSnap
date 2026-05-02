@@ -1,17 +1,42 @@
 import 'dart:math';
-import 'package:uuid/uuid.dart';
 import '../../categories/domain/category_model.dart';
 import '../../transactions/domain/transaction_model.dart';
 import 'insight_model.dart';
 
 class InsightEngine {
-  static const _uuid = Uuid();
+
+  /// Minimum requirements before generating insights.
+  static const _minTransactions = 7;
+  static const _minUniqueDays = 3;
 
   List<Insight> generate({
     required List<TransactionModel> transactions,
     required List<CategoryModel> categories,
     required DateTime now,
   }) {
+    // Check data sufficiency
+    final expenses = transactions
+        .where((t) => t.type == TransactionType.expense)
+        .toList();
+    final uniqueDays = expenses
+        .map((t) => DateTime(t.date.year, t.date.month, t.date.day))
+        .toSet()
+        .length;
+
+    if (expenses.length < _minTransactions || uniqueDays < _minUniqueDays) {
+      return [
+        Insight(
+          id: 'insufficient_data',
+          type: InsightType.observation,
+          severity: InsightSeverity.info,
+          title: 'Building your financial picture',
+          description:
+              'Add at least $_minTransactions expenses across $_minUniqueDays different days and insights will start appearing here.',
+          generatedAt: now,
+        ),
+      ];
+    }
+
     final insights = <Insight>[];
     insights.addAll(_weekendSpendingRule(transactions, now));
     insights.addAll(_categoryDriftRule(transactions, categories, now));
@@ -67,7 +92,7 @@ class InsightEngine {
 
     return [
       Insight(
-        id: _uuid.v4(),
+        id: 'weekend_${now.year}_${now.month}',
         type: InsightType.observation,
         severity: InsightSeverity.medium,
         title: 'You spend more on weekends',
@@ -117,7 +142,7 @@ class InsightEngine {
 
       final pct = (drift * 100).round();
       insights.add(Insight(
-        id: _uuid.v4(),
+        id: 'drift_${category.id}_${now.year}_${now.month}',
         type: InsightType.warning,
         severity: InsightSeverity.high,
         title: '${category.name} spending is up $pct%',
@@ -165,7 +190,7 @@ class InsightEngine {
       if (projectedSpend <= limit * 1.1) continue;
 
       insights.add(Insight(
-        id: _uuid.v4(),
+        id: 'burn_${category.id}_${now.year}_${now.month}',
         type: InsightType.projection,
         severity: InsightSeverity.high,
         title: '${category.name} on track to exceed budget',
@@ -212,7 +237,7 @@ class InsightEngine {
 
     for (final t in recentUnusual) {
       insights.add(Insight(
-        id: _uuid.v4(),
+        id: 'unusual_${t.id}',
         type: InsightType.observation,
         severity: InsightSeverity.medium,
         title: 'Unusual transaction detected',
@@ -260,7 +285,7 @@ class InsightEngine {
 
     return [
       Insight(
-        id: _uuid.v4(),
+        id: 'streak_${now.year}_${now.month}',
         type: InsightType.achievement,
         severity: InsightSeverity.low,
         title: '$streak-month savings streak',
