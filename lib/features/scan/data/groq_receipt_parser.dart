@@ -32,10 +32,11 @@ Rules:
 - "totalAmount": the single final amount the customer paid. Pick "Grand Total", "Amount Due", "Total Payable", or "Net Payable". Ignore subtotals, tax lines, discounts, and change given. Strip currency symbols. Return as a plain number (e.g. 348.00). null if not found.
 - "date": the transaction date as YYYY-MM-DD. Dates are in Indian format DD/MM/YYYY when ambiguous. Reject future dates. null if not found.
 - "vendorName": the store or business name. Short, clean, title-cased. Ignore addresses, phone numbers, GST numbers. null if not found.
-- "category": pick the single best match from this list — coffee, transport, fuel, food, groceries, shopping, clothing, subscriptions, phone, bills, rent, health, gym, beauty, entertainment, travel, pets, other. Use "other" when nothing fits. Never return a value outside this list.
+- "items": array of purchased item names (strings only — no quantities, no prices, no SKUs). Clean, title-cased, deduplicated. Cap at 6 most representative items. Drop generic OCR noise like "TAX", "TOTAL", "ROUND OFF", "DISCOUNT", "CGST", "SGST". Empty array if nothing found.
+- "category": pick the single best match for what was bought, using the items list as the primary signal and the vendor as secondary. Choose from — coffee, transport, fuel, food, groceries, shopping, clothing, subscriptions, phone, bills, rent, health, gym, beauty, entertainment, travel, pets, other. Use "other" when nothing fits. Never return a value outside this list.
 
 Output format — one JSON object, nothing else:
-{"vendorName":"...","date":"YYYY-MM-DD","totalAmount":0.00,"category":"..."}''';
+{"vendorName":"...","date":"YYYY-MM-DD","totalAmount":0.00,"items":["...","..."],"category":"..."}''';
 
   Future<ParsedReceipt> parse(String rawText) async {
     if (rawText.trim().isEmpty) {
@@ -66,7 +67,7 @@ Output format — one JSON object, nothing else:
                 },
               ],
               'temperature': 0,
-              'max_tokens': 400,
+              'max_tokens': 1200,
               'response_format': {'type': 'json_object'},
             }),
           )
@@ -133,7 +134,31 @@ Output format — one JSON object, nothing else:
       }
 
       // Merchant — null out if empty or sentinel "null"/"n/a"/"none"
-      final merchant = _cleanString(json['vendorName']);
+      final vendor = _cleanString(json['vendorName']);
+
+      // Items — list of clean strings, cap at 6, drop sentinels
+      final items = <String>[];
+      if (json['items'] is List) {
+        for (final e in json['items'] as List) {
+          final cleaned = _cleanString(e);
+          if (cleaned != null && !items.contains(cleaned)) {
+            items.add(cleaned);
+            if (items.length >= 6) break;
+          }
+        }
+      }
+
+      // Compose a descriptive merchant/note: "Vendor · item1, item2"
+      final String? merchant;
+      if (vendor != null && items.isNotEmpty) {
+        merchant = '$vendor · ${items.join(", ")}';
+      } else if (vendor != null) {
+        merchant = vendor;
+      } else if (items.isNotEmpty) {
+        merchant = items.join(', ');
+      } else {
+        merchant = null;
+      }
 
       // Category — preserve null when model couldn't find one;
       // only default to "other" if model returned an out-of-list value.

@@ -20,6 +20,9 @@ class AppTheme {
       error: AppColors.danger,
     ).copyWith(
       surface: isDark ? AppColors.darkBgPrimary : AppColors.cream50,
+      onSurface: isDark ? AppColors.darkTextPrimary : AppColors.ink,
+      onPrimary: AppColors.paper,
+      surfaceTint: Colors.transparent,
     );
 
     return ThemeData(
@@ -155,6 +158,63 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: isDark ? AppColors.darkBgPrimary : AppColors.cream50,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        titleTextStyle: AppTypography.headingMedium.copyWith(
+          color: isDark ? AppColors.darkTextPrimary : AppColors.ink,
+        ),
+        contentTextStyle: AppTypography.bodyMedium.copyWith(
+          color: isDark ? AppColors.darkTextPrimary : AppColors.stone600,
+        ),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: isDark ? AppColors.darkBgPrimary : AppColors.cream50,
+        surfaceTintColor: Colors.transparent,
+        headerBackgroundColor: AppColors.ink,
+        headerForegroundColor: AppColors.paper,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        dayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.paper;
+          if (states.contains(WidgetState.disabled)) return AppColors.stone500;
+          return isDark ? AppColors.darkTextPrimary : AppColors.ink;
+        }),
+        dayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.orange;
+          return Colors.transparent;
+        }),
+        todayForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.paper;
+          return AppColors.orange;
+        }),
+        todayBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.orange;
+          return Colors.transparent;
+        }),
+        todayBorder: const BorderSide(color: AppColors.orange),
+        yearForegroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.paper;
+          if (states.contains(WidgetState.disabled)) return AppColors.stone500;
+          return isDark ? AppColors.darkTextPrimary : AppColors.ink;
+        }),
+        yearBackgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) return AppColors.orange;
+          return Colors.transparent;
+        }),
+        weekdayStyle: AppTypography.caption.copyWith(
+          color: AppColors.stone500,
+          fontWeight: FontWeight.w600,
+        ),
+        dayStyle: AppTypography.bodyMedium,
+        rangeSelectionBackgroundColor:
+            AppColors.orange.withValues(alpha: 0.12),
+        dividerColor: AppColors.borderHair,
       ),
       popupMenuTheme: PopupMenuThemeData(
         color: isDark ? AppColors.darkBgPrimary : AppColors.paper,

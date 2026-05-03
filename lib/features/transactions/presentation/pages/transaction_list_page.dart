@@ -453,6 +453,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
                                 ),
                                 const SizedBox(height: 8),
                                 Container(
+                                  clipBehavior: Clip.antiAlias,
                                   decoration: BoxDecoration(
                                     color: AppColors.cream50,
                                     borderRadius:
@@ -460,8 +461,6 @@ class _TransactionListPageState extends State<TransactionListPage> {
                                     border: Border.all(
                                         color: AppColors.borderHair),
                                   ),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16),
                                   child: Column(
                                     children: List.generate(
                                       groupTxns.length,
@@ -480,6 +479,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
                                             i == groupTxns.length - 1;
 
                                         return DecoratedBox(
+                                          position: DecorationPosition.foreground,
                                           decoration: BoxDecoration(
                                             border: isLast
                                                 ? null

@@ -87,7 +87,26 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     _initialized = true;
   }
 
-  void _submit() {
+  bool _isDuplicate(double amount, String categoryId, String? note) {
+    final txnState = context.read<TransactionBloc>().state;
+    if (txnState is! TransactionLoaded) return false;
+    final normalizedNote = note?.trim().toLowerCase();
+    return txnState.transactions.any((t) {
+      if (t.amount != amount) return false;
+      if (t.categoryId != categoryId) return false;
+      if (t.date.year != _date.year ||
+          t.date.month != _date.month ||
+          t.date.day != _date.day) return false;
+      // Different merchants on same day = not a duplicate
+      final tNote = t.note?.trim().toLowerCase();
+      if (normalizedNote != null &&
+          tNote != null &&
+          normalizedNote != tNote) return false;
+      return true;
+    });
+  }
+
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -99,13 +118,45 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) return;
 
+    final amount = double.parse(_amountCtrl.text.trim());
+    final categoryId = _selectedCategory!.id;
+
+    final note = _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim();
+
+    // Dupe check only for scanned receipts (not manual entry)
+    if (_editingTransaction == null &&
+        widget.prefill != null &&
+        _isDuplicate(amount, categoryId, note)) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Possible duplicate'),
+          content: const Text(
+            'A transaction with the same amount, category, and date already exists. Add it anyway?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: TextButton.styleFrom(foregroundColor: AppColors.orange),
+              child: const Text('Add anyway'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
     final txn = TransactionModel(
       id: _editingTransaction?.id ?? const Uuid().v4(),
       uid: authState.user.uid,
-      amount: double.parse(_amountCtrl.text.trim()),
+      amount: amount,
       type: _type,
-      categoryId: _selectedCategory!.id,
-      note: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+      categoryId: categoryId,
+      note: note,
       date: _date,
       isRecurring: _isRecurring,
       recurringFrequency: _isRecurring ? _recurringFreq : null,
@@ -175,8 +226,16 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               },
             ),
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          body: Builder(builder: (context) {
+            final bottomInset = MediaQuery.of(context).padding.bottom;
+            // Background starts at button midpoint (26px up from button bottom).
+            final bgHeight = 26 + 16 + bottomInset;
+            // Button bottom sits 16px + safe-area above screen bottom.
+            final btnBottom = 16 + bottomInset;
+            return Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, btnBottom + 52 + 8),
             child: Form(
               key: _formKey,
               child: Column(
@@ -483,11 +542,24 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
-
-                  // Save button
-                  SizedBox(
-                    width: double.infinity,
+                ],
+              ),
+            ),
+          ),
+                // Half-height background behind button
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: bgHeight,
+                  child: const ColoredBox(color: AppColors.paper),
+                ),
+                // Floating button
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: btnBottom,
+                  child: SizedBox(
                     height: 52,
                     child: ElevatedButton(
                       onPressed: _submit,
@@ -510,10 +582,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
+                ),
+              ],
+            );
+          }),
         );
       },
     );
