@@ -43,6 +43,16 @@ dependencies:
   cupertino_icons: ^1.0.6
   lucide_icons: ^0.257.0
 
+  # Receipt scanning (on-device OCR)
+  image_picker: ^1.1.2
+  google_mlkit_text_recognition: ^0.15.1
+
+  # HTTP client for Groq API
+  http: ^1.2.2
+
+  # Environment variables
+  flutter_dotenv: ^5.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -51,9 +61,20 @@ dev_dependencies:
   mocktail: ^1.0.3
   integration_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  remove_alpha_ios: true
+  min_sdk_android: 21
+  adaptive_icon_background: "#FAF7F2"
+  adaptive_icon_foreground: "assets/icons/app_icon.png"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/icons/
     - assets/images/
+    - .env

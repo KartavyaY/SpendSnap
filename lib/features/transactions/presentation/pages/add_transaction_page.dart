@@ -13,6 +13,7 @@ import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../categories/domain/category_model.dart';
 import '../../../categories/presentation/bloc/category_bloc.dart';
 import '../../../categories/presentation/bloc/category_state.dart';
+import '../../domain/receipt_prefill.dart';
 import '../../domain/transaction_model.dart';
 import '../bloc/transaction_bloc.dart';
 import '../bloc/transaction_event.dart';
@@ -20,7 +21,8 @@ import '../bloc/transaction_state.dart';
 
 class AddTransactionPage extends StatefulWidget {
   final String? editId;
-  const AddTransactionPage({super.key, this.editId});
+  final ReceiptPrefill? prefill;
+  const AddTransactionPage({super.key, this.editId, this.prefill});
 
   @override
   State<AddTransactionPage> createState() => _AddTransactionPageState();
@@ -55,6 +57,33 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     _isRecurring = txn.isRecurring;
     _recurringFreq = txn.recurringFrequency;
     _editingTransaction = txn;
+    _initialized = true;
+  }
+
+  // Income-only icons — never selectable from a receipt prefill.
+  static const _incomeIcons = {'salary'};
+
+  void _initFromPrefill(ReceiptPrefill p, List<CategoryModel> cats) {
+    if (p.amount != null) _amountCtrl.text = p.amount!.toStringAsFixed(2);
+    if (p.date != null) _date = p.date!;
+    if (p.merchant != null && p.merchant!.isNotEmpty) {
+      _noteCtrl.text = p.merchant!;
+    }
+    // Receipts are always expenses — restrict prefill match to expense cats.
+    final expenseCats =
+        cats.where((c) => !_incomeIcons.contains(c.icon)).toList();
+    if (p.categoryHint != null &&
+        !_incomeIcons.contains(p.categoryHint) &&
+        expenseCats.isNotEmpty) {
+      _selectedCategory = expenseCats.firstWhere(
+        (c) => c.icon == p.categoryHint,
+        orElse: () => expenseCats.firstWhere(
+          (c) => c.icon == 'other',
+          orElse: () => expenseCats.first,
+        ),
+      );
+    }
+    _type = TransactionType.expense; // receipts always expenses
     _initialized = true;
   }
 
@@ -110,19 +139,23 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         final categories =
             catState is CategoryLoaded ? catState.categories : <CategoryModel>[];
 
-        // Init edit mode
-        if (widget.editId != null && !_initialized) {
-          final txnState = context.read<TransactionBloc>().state;
-          if (txnState is TransactionLoaded) {
-            final txn = txnState.transactions.firstWhere(
-              (t) => t.id == widget.editId,
-              orElse: () => throw StateError('Transaction not found'),
-            );
-            _initEdit(txn);
-            _selectedCategory = categories.firstWhere(
-              (c) => c.id == txn.categoryId,
-              orElse: () => categories.first,
-            );
+        // Init edit mode or prefill mode (one-time)
+        if (!_initialized) {
+          if (widget.editId != null) {
+            final txnState = context.read<TransactionBloc>().state;
+            if (txnState is TransactionLoaded) {
+              final txn = txnState.transactions.firstWhere(
+                (t) => t.id == widget.editId,
+                orElse: () => throw StateError('Transaction not found'),
+              );
+              _initEdit(txn);
+              _selectedCategory = categories.firstWhere(
+                (c) => c.id == txn.categoryId,
+                orElse: () => categories.first,
+              );
+            }
+          } else if (widget.prefill != null) {
+            _initFromPrefill(widget.prefill!, categories);
           }
         }
 
@@ -208,8 +241,15 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         child: _TypeButton(
                           label: 'Expense',
                           selected: _type == TransactionType.expense,
-                          onTap: () =>
-                              setState(() => _type = TransactionType.expense),
+                          onTap: () => setState(() {
+                            _type = TransactionType.expense;
+                            // Clear stale category when switching type
+                            if (_selectedCategory != null &&
+                                _incomeIcons
+                                    .contains(_selectedCategory!.icon)) {
+                              _selectedCategory = null;
+                            }
+                          }),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -217,31 +257,52 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         child: _TypeButton(
                           label: 'Income',
                           selected: _type == TransactionType.income,
-                          onTap: () =>
-                              setState(() => _type = TransactionType.income),
+                          onTap: () => setState(() {
+                            _type = TransactionType.income;
+                            if (_selectedCategory != null &&
+                                !_incomeIcons
+                                    .contains(_selectedCategory!.icon)) {
+                              _selectedCategory = null;
+                            }
+                          }),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
 
-                  // Category grid
-                  if (categories.isNotEmpty) ...[
-                    const Text('CATEGORY', style: AppTypography.eyebrow),
-                    const SizedBox(height: 10),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        childAspectRatio: 1.8,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
-                      itemCount: categories.length,
-                      itemBuilder: (_, i) {
-                        final cat = categories[i];
+                  // Category grid — filtered by transaction type.
+                  // Expense types hide income-only icons; income shows only income cats.
+                  Builder(builder: (_) {
+                    final filteredCategories = _type == TransactionType.income
+                        ? categories
+                            .where((c) => _incomeIcons.contains(c.icon))
+                            .toList()
+                        : categories
+                            .where((c) => !_incomeIcons.contains(c.icon))
+                            .toList();
+                    return filteredCategories.isEmpty
+                        ? const SizedBox.shrink()
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('CATEGORY',
+                                  style: AppTypography.eyebrow),
+                              const SizedBox(height: 10),
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics:
+                                    const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  childAspectRatio: 1.8,
+                                  crossAxisSpacing: 8,
+                                  mainAxisSpacing: 8,
+                                ),
+                                itemCount: filteredCategories.length,
+                                itemBuilder: (_, i) {
+                                  final cat = filteredCategories[i];
                         final isSelected = _selectedCategory?.id == cat.id;
                         final catColor = _parseColor(cat.color);
                         return GestureDetector(
@@ -303,9 +364,11 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           ),
                         );
                       },
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+                          );
+                  }),
 
                   // Details card
                   Container(

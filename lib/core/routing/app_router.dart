@@ -9,6 +9,7 @@ import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
+import '../../features/transactions/domain/receipt_prefill.dart';
 import '../../features/transactions/presentation/pages/transaction_list_page.dart';
 import '../../features/transactions/presentation/pages/add_transaction_page.dart';
 import '../../features/categories/presentation/pages/categories_page.dart';
@@ -16,6 +17,7 @@ import '../../features/budgets/presentation/pages/plan_page.dart';
 import '../../features/analytics/presentation/pages/analytics_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/auth/presentation/pages/me_page.dart';
+import '../../features/scan/presentation/pages/scan_page.dart';
 
 class AppRouter {
   final AuthBloc authBloc;
@@ -55,7 +57,11 @@ class AppRouter {
               routes: [
                 GoRoute(
                   path: 'add',
-                  builder: (_, __) => const AddTransactionPage(),
+                  builder: (_, state) => AddTransactionPage(
+                    prefill: state.extra is ReceiptPrefill
+                        ? state.extra as ReceiptPrefill
+                        : null,
+                  ),
                 ),
                 GoRoute(
                   path: 'edit/:id',
@@ -65,6 +71,7 @@ class AppRouter {
                 ),
               ],
             ),
+            GoRoute(path: '/scan', builder: (_, __) => const ScanPage()),
             GoRoute(path: '/categories', builder: (_, __) => const CategoriesPage()),
             GoRoute(
               path: '/budgets',
@@ -129,7 +136,7 @@ class MainShell extends StatelessWidget {
           currentIndex: currentIndex,
           onTap: (i) {
             if (i == 2) {
-              context.go('/transactions/add');
+              context.go('/scan');
             } else {
               context.go(_tabRoutes[i]!);
             }

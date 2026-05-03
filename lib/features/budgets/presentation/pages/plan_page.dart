@@ -437,7 +437,7 @@ class _BudgetCard extends StatelessWidget {
               value: budget.progress.clamp(0.0, 1.0),
               backgroundColor: AppColors.cream300,
               valueColor: AlwaysStoppedAnimation(categoryColor),
-              minHeight: 8,
+              minHeight: 8.5,
             ),
           ),
           if (budget.isOverBudget) ...[
