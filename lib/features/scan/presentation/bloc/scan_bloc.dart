@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -27,8 +29,9 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
     CaptureRequested event,
     Emitter<ScanState> emit,
   ) async {
+    File? file;
     try {
-      final file = await _capture.capture(event.source);
+      file = await _capture.capture(event.source);
       if (file == null) {
         emit(const ScanIdle());
         return;
@@ -41,6 +44,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       try {
         rawText = await _ocr.processImage(file);
       } on PlatformException catch (e) {
+        await file.delete().catchError((_) {});
         emit(ScanError(
             "Couldn't read this image. Try again with better lighting. (${e.code})"));
         return;
@@ -53,8 +57,10 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
         await Future.delayed(Duration(milliseconds: remaining));
       }
 
+      // file held by ReceiptReviewCard until widget disposes
       emit(ScanParsed(result, file));
     } catch (e) {
+      await file?.delete().catchError((_) {});
       emit(ScanError('Something went wrong: $e'));
     }
   }

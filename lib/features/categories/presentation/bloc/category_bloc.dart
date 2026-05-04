@@ -24,10 +24,13 @@ class _CatStreamError extends CategoryEvent {
 class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
   final CategoryRepository _repository;
   StreamSubscription<List<CategoryModel>>? _sub;
+  // Guard so we don't seed multiple times during the gap between
+  // batch commit and the next stream emission.
+  bool _seeding = false;
 
   CategoryBloc(this._repository) : super(const CategoryInitial()) {
     on<LoadCategories>(_onLoad);
-    on<_CatsUpdated>((e, emit) => emit(CategoryLoaded(e.cats)));
+    on<_CatsUpdated>(_onCatsUpdated);
     on<_CatStreamError>((e, emit) => emit(CategoryError(e.message)));
     on<AddCategory>(_onAdd);
     on<UpdateCategory>(_onUpdate);
@@ -42,6 +45,27 @@ class CategoryBloc extends Bloc<CategoryEvent, CategoryState> {
       (cats) => add(_CatsUpdated(cats)),
       onError: (Object err, _) => add(_CatStreamError(err.toString())),
     );
+  }
+
+  Future<void> _onCatsUpdated(
+    _CatsUpdated event,
+    Emitter<CategoryState> emit,
+  ) async {
+    // Auto-seed when user has no categories (e.g. dev DB reset, first launch
+    // of an account that pre-dates seeding).
+    if (event.cats.isEmpty && !_seeding) {
+      _seeding = true;
+      try {
+        await _repository.seedDefaultCategories();
+      } catch (_) {
+        // Stream will re-emit if write succeeds; if not, leave list empty.
+      } finally {
+        _seeding = false;
+      }
+      // Don't emit empty — let the next stream emission deliver seeded cats.
+      return;
+    }
+    emit(CategoryLoaded(event.cats));
   }
 
   Future<void> _onAdd(AddCategory event, Emitter<CategoryState> emit) async {

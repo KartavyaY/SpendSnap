@@ -114,10 +114,15 @@ class _SwipeToRevealDelete extends StatefulWidget {
 }
 
 class _SwipeToRevealDeleteState extends State<_SwipeToRevealDelete>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const _revealWidth = 64.0;
   late final AnimationController _ctrl;
+  late final AnimationController _deleteCtrl;
   late Animation<double> _offsetAnim;
+  late Animation<double> _heightFactor;
+  late Animation<double> _opacity;
+  late Animation<Offset> _slide;
+  bool _deleting = false;
 
   @override
   void initState() {
@@ -127,12 +132,42 @@ class _SwipeToRevealDeleteState extends State<_SwipeToRevealDelete>
       duration: const Duration(milliseconds: 200),
     );
     _offsetAnim = Tween<double>(begin: 0, end: 0).animate(_ctrl);
+
+    _deleteCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    // 0..1 progress. ReverseAnimation collapses size and fades out.
+    _heightFactor = ReverseAnimation(
+      CurvedAnimation(parent: _deleteCtrl, curve: Curves.easeInOutCubic),
+    );
+    _opacity = ReverseAnimation(
+      CurvedAnimation(
+        parent: _deleteCtrl,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+    _slide = Tween<Offset>(begin: Offset.zero, end: const Offset(-1, 0)).animate(
+      CurvedAnimation(
+        parent: _deleteCtrl,
+        curve: const Interval(0.0, 0.55, curve: Curves.easeIn),
+      ),
+    );
   }
 
   @override
   void dispose() {
     _ctrl.dispose();
+    _deleteCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _runDelete() async {
+    if (_deleting) return;
+    setState(() => _deleting = true);
+    await _deleteCtrl.forward();
+    if (!mounted) return;
+    widget.onDelete();
   }
 
   double _dragStart = 0;
@@ -184,7 +219,7 @@ class _SwipeToRevealDeleteState extends State<_SwipeToRevealDelete>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
+    final swipeContent = LayoutBuilder(
       builder: (context, constraints) {
         // Fallback for unbounded contexts — render tile without swipe.
         if (!constraints.hasBoundedWidth) return widget.child;
@@ -224,7 +259,7 @@ class _SwipeToRevealDeleteState extends State<_SwipeToRevealDelete>
                       bottom: 0,
                       width: _revealWidth,
                       child: GestureDetector(
-                        onTap: widget.onDelete,
+                        onTap: _runDelete,
                         child: const ColoredBox(
                           color: AppColors.dangerBg,
                           child: Center(
@@ -243,6 +278,23 @@ class _SwipeToRevealDeleteState extends State<_SwipeToRevealDelete>
           ),
         );
       },
+    );
+
+    return ClipRect(
+      child: SizeTransition(
+        sizeFactor: _heightFactor,
+        axisAlignment: -1,
+        child: FadeTransition(
+          opacity: _opacity,
+          child: SlideTransition(
+            position: _slide,
+            child: IgnorePointer(
+              ignoring: _deleting,
+              child: swipeContent,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

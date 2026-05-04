@@ -108,8 +108,9 @@ void _showSetBudgetSheet(
   CategoryModel? initial,
 }) {
   final catState = context.read<CategoryBloc>().state;
-  final categories =
-      catState is CategoryLoaded ? catState.categories : <CategoryModel>[];
+  final categories = catState is CategoryLoaded
+      ? catState.categories.where((c) => !c.isIncome).toList()
+      : <CategoryModel>[];
 
   showModalBottomSheet(
     context: context,
@@ -928,6 +929,145 @@ class _SetBudgetSheetState extends State<_SetBudgetSheet> {
     super.dispose();
   }
 
+  Color _parseColor(String hex) {
+    try {
+      return Color(int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
+    } catch (_) {
+      return AppColors.stone500;
+    }
+  }
+
+  void _pickCategory(BuildContext ctx) {
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: AppColors.paper,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        snap: true,
+        snapSizes: const [0.3, 0.5, 0.85],
+        shouldCloseOnMinExtent: true,
+        builder: (_, scrollCtrl) => Padding(
+        padding: EdgeInsets.fromLTRB(
+            24, 16, 24, MediaQuery.of(ctx).padding.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.cream300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const Text('Category', style: AppTypography.headingMedium),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                controller: scrollCtrl,
+                child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.cream50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.borderHair),
+              ),
+              child: Column(
+                children: List.generate(widget.categories.length, (i) {
+                  final cat = widget.categories[i];
+                  final selected = _selected?.id == cat.id;
+                  final isLast = i == widget.categories.length - 1;
+                  final catColor = _parseColor(cat.color);
+                  return Column(
+                    children: [
+                      InkWell(
+                        borderRadius: BorderRadius.vertical(
+                          top: i == 0
+                              ? const Radius.circular(16)
+                              : Radius.zero,
+                          bottom: isLast
+                              ? const Radius.circular(16)
+                              : Radius.zero,
+                        ),
+                        onTap: () {
+                          setState(() => _selected = cat);
+                          Navigator.pop(ctx);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: catColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    CategoryIcon.resolve(cat.icon),
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  cat.name,
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    color: selected
+                                        ? AppColors.orange
+                                        : AppColors.ink,
+                                    fontWeight: selected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                                ),
+                              ),
+                              if (selected)
+                                const Icon(Icons.check,
+                                    size: 18, color: AppColors.orange),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (!isLast)
+                        const Divider(
+                          height: 1,
+                          thickness: 1,
+                          indent: 16,
+                          endIndent: 16,
+                          color: AppColors.borderHair,
+                        ),
+                    ],
+                  );
+                }),
+              ),
+            ), // Container
+              ), // SingleChildScrollView
+            ), // Flexible
+          ],
+        ),
+      ),
+      ), // DraggableScrollableSheet builder
+    );
+  }
+
   void _save() {
     if (_selected == null) return;
     final amount = double.tryParse(_amountCtrl.text.trim());
@@ -969,28 +1109,41 @@ class _SetBudgetSheetState extends State<_SetBudgetSheet> {
             ),
             const SizedBox(height: 16),
           ] else if (widget.categories.isNotEmpty) ...[
-            InputDecorator(
-              decoration: const InputDecoration(labelText: 'Category'),
-              child: DropdownButton<CategoryModel>(
-                value: _selected,
-                isExpanded: true,
-                underline: const SizedBox.shrink(),
-                items: widget.categories
-                    .map((c) => DropdownMenuItem(
-                          value: c,
-                          child: Row(
-                            children: [
-                              Icon(CategoryIcon.resolve(c.icon), size: 16),
-                              const SizedBox(width: 8),
-                              Text(c.name),
-                            ],
-                          ),
-                        ))
-                    .toList(),
-                onChanged: (c) => setState(() => _selected = c),
+            const Text('CATEGORY', style: AppTypography.eyebrow),
+            const SizedBox(height: 8),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _pickCategory(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.cream50,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.borderHair),
+                ),
+                child: Row(
+                  children: [
+                    if (_selected != null) ...[
+                      _ColorDot(category: _selected!),
+                      const SizedBox(width: 10),
+                    ],
+                    Expanded(
+                      child: Text(
+                        _selected?.name ?? 'Select category',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: _selected != null
+                              ? AppColors.ink
+                              : AppColors.stone500,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right,
+                        size: 18, color: AppColors.stone500),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
           ] else ...[
             Text(
               'No categories found. Add categories first.',
@@ -1019,6 +1172,33 @@ class _SetBudgetSheetState extends State<_SetBudgetSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ColorDot extends StatelessWidget {
+  final CategoryModel category;
+  const _ColorDot({required this.category});
+
+  Color _parseColor(String hex) {
+    try {
+      return Color(int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
+    } catch (_) {
+      return AppColors.stone500;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _parseColor(category.color);
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      child: Center(
+        child: Icon(CategoryIcon.resolve(category.icon),
+            size: 12, color: Colors.white),
       ),
     );
   }

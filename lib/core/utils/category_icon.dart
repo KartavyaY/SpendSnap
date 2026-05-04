@@ -44,27 +44,9 @@ class CategoryIcon {
   /// All available icon keys, for display in a picker.
   static List<String> get allKeys => _map.keys.toList();
 
-  // Legacy emoji → key mapping for existing Firestore documents.
-  static const Map<String, String> _emojiFallback = {
-    '🍔': 'food',
-    '🚗': 'transport',
-    '🛍️': 'shopping',
-    '📄': 'bills',
-    '🎬': 'entertainment',
-    '🏥': 'health',
-    '💰': 'salary',
-    '📦': 'other',
-  };
-
   /// Resolve a key to an [IconData]. Falls back to [LucideIcons.tag].
   static IconData resolve(String key) {
-    // Direct key match
-    final direct = _map[key.toLowerCase()];
-    if (direct != null) return direct;
-    // Legacy emoji match
-    final legacyKey = _emojiFallback[key];
-    if (legacyKey != null) return _map[legacyKey]!;
-    return LucideIcons.tag;
+    return _map[key.toLowerCase()] ?? LucideIcons.tag;
   }
 
   /// Human-readable label for a key.

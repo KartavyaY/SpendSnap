@@ -26,7 +26,7 @@ class TransactionListPage extends StatefulWidget {
 
 class _TransactionListPageState extends State<TransactionListPage> {
   TransactionType? _typeFilter;
-  String? _categoryFilter;
+  List<String> _categoryFilters = [];
   DateTime? _from;
   DateTime? _to;
   bool _searchActive = false;
@@ -40,7 +40,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
 
   void _applyFilter({
     TransactionType? type,
-    String? categoryId,
+    List<String> categoryIds = const [],
     DateTime? from,
     DateTime? to,
     String? search,
@@ -52,7 +52,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
 
     context.read<TransactionBloc>().add(FilterTransactions(
           typeFilter: type,
-          categoryFilter: categoryId,
+          categoryFilters: categoryIds,
           from: from,
           to: to,
           searchQuery: search,
@@ -64,7 +64,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
     setState(() => _typeFilter = type);
     _applyFilter(
       type: type,
-      categoryId: _categoryFilter,
+      categoryIds: _categoryFilters,
       from: _from,
       to: _to,
       search: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
@@ -74,7 +74,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
   void _onSearch(String query) {
     _applyFilter(
       type: _typeFilter,
-      categoryId: _categoryFilter,
+      categoryIds: _categoryFilters,
       from: _from,
       to: _to,
       search: query.trim().isEmpty ? null : query.trim(),
@@ -86,19 +86,19 @@ class _TransactionListPageState extends State<TransactionListPage> {
     setState(() => _searchActive = false);
     _applyFilter(
       type: _typeFilter,
-      categoryId: _categoryFilter,
+      categoryIds: _categoryFilters,
       from: _from,
       to: _to,
     );
   }
 
   bool get _hasActiveFilters =>
-      _categoryFilter != null || _from != null || _to != null;
+      _categoryFilters.isNotEmpty || _from != null || _to != null;
 
   void _showFilterSheet(BuildContext context, List<CategoryModel> categories) {
     // Local state copies for the sheet
     TransactionType? sheetType = _typeFilter;
-    String? sheetCat = _categoryFilter;
+    List<String> sheetCats = List.of(_categoryFilters);
     DateTime? sheetFrom = _from;
     DateTime? sheetTo = _to;
 
@@ -137,7 +137,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
                     onPressed: () {
                       setSheet(() {
                         sheetType = null;
-                        sheetCat = null;
+                        sheetCats = [];
                         sheetFrom = null;
                         sheetTo = null;
                       });
@@ -176,42 +176,82 @@ class _TransactionListPageState extends State<TransactionListPage> {
               ),
               const SizedBox(height: 20),
 
-              // Category
+              // Category — multi-select chips
               if (categories.isNotEmpty) ...[
                 const Text('CATEGORY', style: AppTypography.eyebrow),
                 const SizedBox(height: 10),
-                DropdownButtonFormField<String?>(
-                  value: sheetCat,
-                  decoration: InputDecoration(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: AppColors.borderHair),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: AppColors.borderHair),
-                    ),
-                    filled: true,
-                    fillColor: AppColors.cream50,
-                  ),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('All categories')),
-                    ...categories.map((c) => DropdownMenuItem(
-                          value: c.id,
-                          child: Row(
-                            children: [
-                              Icon(CategoryIcon.resolve(c.icon), size: 16),
-                              const SizedBox(width: 8),
-                              Text(c.name),
-                            ],
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: categories.map((cat) {
+                    final selected = sheetCats.contains(cat.id);
+                    Color catColor;
+                    try {
+                      catColor = Color(int.parse(
+                          'FF${cat.color.replaceAll('#', '')}',
+                          radix: 16));
+                    } catch (_) {
+                      catColor = AppColors.stone500;
+                    }
+                    return GestureDetector(
+                      onTap: () => setSheet(() {
+                        if (selected) {
+                          sheetCats = sheetCats
+                              .where((id) => id != cat.id)
+                              .toList();
+                        } else {
+                          sheetCats = [...sheetCats, cat.id];
+                        }
+                      }),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: selected ? AppColors.ink : AppColors.cream100,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: selected
+                                ? AppColors.ink
+                                : AppColors.borderHair,
                           ),
-                        )),
-                  ],
-                  onChanged: (v) => setSheet(() => sheetCat = v),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: selected
+                                    ? AppColors.paper.withValues(alpha: 0.25)
+                                    : catColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  CategoryIcon.resolve(cat.icon),
+                                  size: 10,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              cat.name,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: selected
+                                    ? AppColors.paper
+                                    : AppColors.ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -253,13 +293,13 @@ class _TransactionListPageState extends State<TransactionListPage> {
                   onPressed: () {
                     setState(() {
                       _typeFilter = sheetType;
-                      _categoryFilter = sheetCat;
+                      _categoryFilters = List.of(sheetCats);
                       _from = sheetFrom;
                       _to = sheetTo;
                     });
                     _applyFilter(
                       type: sheetType,
-                      categoryId: sheetCat,
+                      categoryIds: sheetCats,
                       from: sheetFrom,
                       to: sheetTo,
                       search: _searchCtrl.text.trim().isEmpty
@@ -634,3 +674,4 @@ class _DatePickerButton extends StatelessWidget {
     );
   }
 }
+

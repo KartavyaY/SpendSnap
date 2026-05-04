@@ -91,9 +91,10 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
           filtered.where((t) => t.type == event.typeFilter).toList();
     }
 
-    if (event.categoryFilter != null && event.categoryFilter!.isNotEmpty) {
-      filtered =
-          filtered.where((t) => t.categoryId == event.categoryFilter).toList();
+    if (event.categoryFilters.isNotEmpty) {
+      filtered = filtered
+          .where((t) => event.categoryFilters.contains(t.categoryId))
+          .toList();
     }
 
     if (event.from != null) {
@@ -121,7 +122,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
       transactions: _all,
       filtered: filtered,
       typeFilter: event.typeFilter,
-      categoryFilter: event.categoryFilter,
+      categoryFilters: event.categoryFilters,
       searchQuery: event.searchQuery,
     ));
   }

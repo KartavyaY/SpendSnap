@@ -19,20 +19,20 @@ class TransactionLoaded extends TransactionState {
   final List<TransactionModel> transactions;
   final List<TransactionModel> filtered;
   final TransactionType? typeFilter;
-  final String? categoryFilter;
+  final List<String> categoryFilters;
   final String? searchQuery;
 
   const TransactionLoaded({
     required this.transactions,
     required this.filtered,
     this.typeFilter,
-    this.categoryFilter,
+    this.categoryFilters = const [],
     this.searchQuery,
   });
 
   @override
   List<Object?> get props =>
-      [transactions, filtered, typeFilter, categoryFilter, searchQuery];
+      [transactions, filtered, typeFilter, categoryFilters, searchQuery];
 }
 
 class TransactionError extends TransactionState {

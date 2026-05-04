@@ -53,4 +53,25 @@ class CategoryRepository {
       'monthlyLimit': limit,
     });
   }
+
+  /// Seeds the default category set for the current user.
+  /// Idempotent on the caller — bloc only invokes when watch returns empty.
+  Future<void> seedDefaultCategories() async {
+    final uid = _uid;
+    if (uid == null) return;
+    final batch = _firestore.batch();
+    for (final cat in defaultCategories) {
+      final ref = _firestore.collection('categories').doc();
+      batch.set(ref, {
+        'uid': uid,
+        'name': cat['name'],
+        'icon': cat['icon'],
+        'color': cat['color'],
+        'monthlyLimit': null,
+        'isDefault': true,
+        'isIncome': cat['isIncome'] ?? false,
+      });
+    }
+    await batch.commit();
+  }
 }

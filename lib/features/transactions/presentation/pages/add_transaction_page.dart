@@ -13,6 +13,7 @@ import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../categories/domain/category_model.dart';
 import '../../../categories/presentation/bloc/category_bloc.dart';
 import '../../../categories/presentation/bloc/category_state.dart';
+import '../../../categories/presentation/pages/categories_page.dart';
 import '../../domain/receipt_prefill.dart';
 import '../../domain/transaction_model.dart';
 import '../bloc/transaction_bloc.dart';
@@ -60,9 +61,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     _initialized = true;
   }
 
-  // Income-only icons — never selectable from a receipt prefill.
-  static const _incomeIcons = {'salary'};
-
   void _initFromPrefill(ReceiptPrefill p, List<CategoryModel> cats) {
     if (p.amount != null) _amountCtrl.text = p.amount!.toStringAsFixed(2);
     if (p.date != null) _date = p.date!;
@@ -70,11 +68,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       _noteCtrl.text = p.merchant!;
     }
     // Receipts are always expenses — restrict prefill match to expense cats.
-    final expenseCats =
-        cats.where((c) => !_incomeIcons.contains(c.icon)).toList();
-    if (p.categoryHint != null &&
-        !_incomeIcons.contains(p.categoryHint) &&
-        expenseCats.isNotEmpty) {
+    final expenseCats = cats.where((c) => !c.isIncome).toList();
+    if (p.categoryHint != null && expenseCats.isNotEmpty) {
       _selectedCategory = expenseCats.firstWhere(
         (c) => c.icon == p.categoryHint,
         orElse: () => expenseCats.firstWhere(
@@ -172,6 +167,112 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     } else {
       context.go('/transactions');
     }
+  }
+
+  static const _freqOptions = [
+    ('daily', 'Daily', Icons.wb_sunny_outlined),
+    ('weekly', 'Weekly', Icons.view_week_outlined),
+    ('monthly', 'Monthly', Icons.calendar_month_outlined),
+  ];
+
+  String _freqLabel(String v) =>
+      _freqOptions.firstWhere((e) => e.$1 == v, orElse: () => (v, v, Icons.repeat)).$2;
+
+  void _pickFrequency(BuildContext ctx) {
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: AppColors.paper,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.cream300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const Text('Frequency', style: AppTypography.headingMedium),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.cream50,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.borderHair),
+              ),
+              child: Column(
+                children: List.generate(_freqOptions.length, (i) {
+                  final (value, label, icon) = _freqOptions[i];
+                  final selected = _recurringFreq == value;
+                  final isLast = i == _freqOptions.length - 1;
+                  return Column(
+                    children: [
+                      InkWell(
+                        borderRadius: BorderRadius.vertical(
+                          top: i == 0 ? const Radius.circular(16) : Radius.zero,
+                          bottom: isLast ? const Radius.circular(16) : Radius.zero,
+                        ),
+                        onTap: () {
+                          setState(() => _recurringFreq = value);
+                          Navigator.pop(ctx);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
+                          child: Row(
+                            children: [
+                              Icon(icon,
+                                  size: 18,
+                                  color: selected
+                                      ? AppColors.orange
+                                      : AppColors.stone600),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  label,
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    color: selected
+                                        ? AppColors.orange
+                                        : AppColors.ink,
+                                    fontWeight: selected
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
+                                  ),
+                                ),
+                              ),
+                              if (selected)
+                                const Icon(Icons.check,
+                                    size: 18, color: AppColors.orange),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (!isLast)
+                        const Divider(
+                            height: 1,
+                            thickness: 1,
+                            indent: 16,
+                            endIndent: 16,
+                            color: AppColors.borderHair),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Color _parseColor(String hex) {
@@ -302,10 +403,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           selected: _type == TransactionType.expense,
                           onTap: () => setState(() {
                             _type = TransactionType.expense;
-                            // Clear stale category when switching type
+                            // Clear category if it's income-only
                             if (_selectedCategory != null &&
-                                _incomeIcons
-                                    .contains(_selectedCategory!.icon)) {
+                                _selectedCategory!.isIncome) {
                               _selectedCategory = null;
                             }
                           }),
@@ -316,14 +416,17 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         child: _TypeButton(
                           label: 'Income',
                           selected: _type == TransactionType.income,
-                          onTap: () => setState(() {
-                            _type = TransactionType.income;
-                            if (_selectedCategory != null &&
-                                !_incomeIcons
-                                    .contains(_selectedCategory!.icon)) {
-                              _selectedCategory = null;
-                            }
-                          }),
+                          onTap: () {
+                            final incomeCats = categories
+                                .where((c) => c.isIncome)
+                                .toList();
+                            setState(() {
+                              _type = TransactionType.income;
+                              _selectedCategory = incomeCats.isNotEmpty
+                                  ? incomeCats.first
+                                  : null;
+                            });
+                          },
                         ),
                       ),
                     ],
@@ -331,102 +434,201 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                   const SizedBox(height: 20),
 
                   // Category grid — filtered by transaction type.
-                  // Expense types hide income-only icons; income shows only income cats.
-                  Builder(builder: (_) {
+                  Builder(builder: (gridCtx) {
                     final filteredCategories = _type == TransactionType.income
-                        ? categories
-                            .where((c) => _incomeIcons.contains(c.icon))
-                            .toList()
-                        : categories
-                            .where((c) => !_incomeIcons.contains(c.icon))
-                            .toList();
-                    return filteredCategories.isEmpty
-                        ? const SizedBox.shrink()
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('CATEGORY',
-                                  style: AppTypography.eyebrow),
-                              const SizedBox(height: 10),
-                              GridView.builder(
-                                shrinkWrap: true,
-                                physics:
-                                    const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  childAspectRatio: 1.8,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
-                                ),
-                                itemCount: filteredCategories.length,
-                                itemBuilder: (_, i) {
-                                  final cat = filteredCategories[i];
-                        final isSelected = _selectedCategory?.id == cat.id;
-                        final catColor = _parseColor(cat.color);
-                        return GestureDetector(
-                          onTap: () =>
-                              setState(() => _selectedCategory = cat),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppColors.ink
-                                  : AppColors.cream100,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.ink
-                                    : AppColors.borderHair,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? AppColors.paper.withValues(alpha: 0.2)
-                                        : catColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Icon(
-                                      CategoryIcon.resolve(cat.icon),
-                                      size: 13,
-                                      color: isSelected
-                                          ? AppColors.paper
-                                          : Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    cat.name,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: isSelected
-                                          ? AppColors.paper
-                                          : AppColors.ink,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
+                        ? categories.where((c) => c.isIncome).toList()
+                        : categories.where((c) => !c.isIncome).toList();
+
+                    // Auto-select income category when none is selected
+                    // (covers edit-mode load and initial income selection)
+                    if (_type == TransactionType.income &&
+                        filteredCategories.isNotEmpty &&
+                        (_selectedCategory == null ||
+                            !filteredCategories
+                                .any((c) => c.id == _selectedCategory!.id))) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(
+                              () => _selectedCategory = filteredCategories.first);
+                        }
+                      });
+                    }
+
+                    void showAddCategorySheet() {
+                      final catBloc = context.read<CategoryBloc>();
+                      final authBloc = context.read<AuthBloc>();
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: AppColors.paper,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(24)),
+                        ),
+                        builder: (_) => BlocProvider.value(
+                          value: catBloc,
+                          child: BlocProvider.value(
+                            value: authBloc,
+                            child: CategoryFormSheet(
+                              initialIsIncome:
+                                  _type == TransactionType.income,
                             ),
                           ),
-                        );
-                      },
+                        ),
+                      );
+                    }
+
+                    void showEditCategorySheet(CategoryModel cat) {
+                      final catBloc = context.read<CategoryBloc>();
+                      final authBloc = context.read<AuthBloc>();
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: AppColors.paper,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.vertical(top: Radius.circular(24)),
+                        ),
+                        builder: (_) => BlocProvider.value(
+                          value: catBloc,
+                          child: BlocProvider.value(
+                            value: authBloc,
+                            child: CategoryFormSheet(editing: cat),
+                          ),
+                        ),
+                      );
+                    }
+
+                    // itemCount + 1 for the "+ Add category" tile
+                    final totalItems = filteredCategories.length + 1;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('CATEGORY', style: AppTypography.eyebrow),
+                        const SizedBox(height: 10),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            childAspectRatio: 1.8,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
+                          itemCount: totalItems,
+                          itemBuilder: (_, i) {
+                            // Last tile = "+ Add category"
+                            if (i == filteredCategories.length) {
+                              return GestureDetector(
+                                onTap: showAddCategorySheet,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.cream100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.borderHair,
+                                      style: BorderStyle.solid,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.add,
+                                          size: 14,
+                                          color: AppColors.stone600),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          'Add',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: AppColors.stone600,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final cat = filteredCategories[i];
+                            final isSelected = _selectedCategory?.id == cat.id;
+                            final catColor = _parseColor(cat.color);
+                            return GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () =>
+                                  setState(() => _selectedCategory = cat),
+                              onLongPress: () => showEditCategorySheet(cat),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.ink
+                                      : AppColors.cream100,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.ink
+                                        : AppColors.borderHair,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 24,
+                                      height: 24,
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? AppColors.paper
+                                                .withValues(alpha: 0.2)
+                                            : catColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          CategoryIcon.resolve(cat.icon),
+                                          size: 13,
+                                          color: isSelected
+                                              ? AppColors.paper
+                                              : Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        cat.name,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: isSelected
+                                              ? AppColors.paper
+                                              : AppColors.ink,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 20),
-                            ],
-                          );
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    );
                   }),
 
                   // Details card
@@ -513,28 +715,31 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                               height: 1,
                               thickness: 1,
                               color: AppColors.borderHair),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                            child: DropdownButtonFormField<String>(
-                              initialValue: _recurringFreq,
-                              decoration: const InputDecoration(
-                                labelText: 'Frequency',
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                filled: false,
+                          InkWell(
+                            onTap: () => _pickFrequency(context),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 14),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.repeat,
+                                      size: 18, color: AppColors.stone600),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    _recurringFreq != null
+                                        ? _freqLabel(_recurringFreq!)
+                                        : 'Select frequency',
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      color: _recurringFreq != null
+                                          ? AppColors.ink
+                                          : AppColors.stone500,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  const Icon(Icons.chevron_right,
+                                      size: 18, color: AppColors.stone500),
+                                ],
                               ),
-                              items: const [
-                                DropdownMenuItem(
-                                    value: 'daily', child: Text('Daily')),
-                                DropdownMenuItem(
-                                    value: 'weekly', child: Text('Weekly')),
-                                DropdownMenuItem(
-                                    value: 'monthly',
-                                    child: Text('Monthly')),
-                              ],
-                              onChanged: (v) =>
-                                  setState(() => _recurringFreq = v),
                             ),
                           ),
                         ],

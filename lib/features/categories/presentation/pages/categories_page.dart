@@ -19,52 +19,56 @@ class CategoriesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Categories'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showAddCategorySheet(context),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Categories'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () => _showAddCategorySheet(context),
+            ),
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Expense'),
+              Tab(text: 'Income'),
+            ],
           ),
-        ],
-      ),
-      body: BlocBuilder<CategoryBloc, CategoryState>(
-        builder: (context, state) {
-          if (state is CategoryLoading) return const LoadingIndicator();
-          if (state is CategoryLoaded) {
-            if (state.categories.isEmpty) {
-              return const EmptyState(
-                title: 'No categories',
-                description: 'Add your first category to organize transactions.',
-                icon: Icons.category_outlined,
+        ),
+        body: BlocBuilder<CategoryBloc, CategoryState>(
+          builder: (context, state) {
+            if (state is CategoryLoading) return const LoadingIndicator();
+            if (state is CategoryLoaded) {
+              final expenseCats =
+                  state.categories.where((c) => !c.isIncome).toList();
+              final incomeCats =
+                  state.categories.where((c) => c.isIncome).toList();
+
+              return TabBarView(
+                children: [
+                  _CategoryGrid(
+                    categories: expenseCats,
+                    emptyTitle: 'No expense categories',
+                    onTap: (cat) => _showEditCategorySheet(context, cat),
+                  ),
+                  _CategoryGrid(
+                    categories: incomeCats,
+                    emptyTitle: 'No income categories',
+                    onTap: (cat) => _showEditCategorySheet(context, cat),
+                  ),
+                ],
               );
             }
-            return GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.9,
-              ),
-              itemCount: state.categories.length,
-              itemBuilder: (_, i) {
-                final cat = state.categories[i];
-                return _CategoryCard(
-                  category: cat,
-                  onTap: () => _showEditCategorySheet(context, cat),
-                );
-              },
-            );
-          }
-          return const SizedBox.shrink();
-        },
+            return const SizedBox.shrink();
+          },
+        ),
       ),
     );
   }
 
-  void _showAddCategorySheet(BuildContext context) {
+  void _showAddCategorySheet(BuildContext context, {bool initialIsIncome = false}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -76,7 +80,7 @@ class CategoriesPage extends StatelessWidget {
         value: context.read<CategoryBloc>(),
         child: BlocProvider.value(
           value: context.read<AuthBloc>(),
-          child: const _CategoryFormSheet(),
+          child: CategoryFormSheet(initialIsIncome: initialIsIncome),
         ),
       ),
     );
@@ -94,8 +98,47 @@ class CategoriesPage extends StatelessWidget {
         value: context.read<CategoryBloc>(),
         child: BlocProvider.value(
           value: context.read<AuthBloc>(),
-          child: _CategoryFormSheet(editing: cat),
+          child: CategoryFormSheet(editing: cat),
         ),
+      ),
+    );
+  }
+}
+
+// ── Category grid ─────────────────────────────────────────────
+
+class _CategoryGrid extends StatelessWidget {
+  final List<CategoryModel> categories;
+  final String emptyTitle;
+  final void Function(CategoryModel) onTap;
+
+  const _CategoryGrid({
+    required this.categories,
+    required this.emptyTitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (categories.isEmpty) {
+      return EmptyState(
+        title: emptyTitle,
+        description: 'Add a category using the + button.',
+        icon: Icons.category_outlined,
+      );
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.9,
+      ),
+      itemCount: categories.length,
+      itemBuilder: (_, i) => _CategoryCard(
+        category: categories[i],
+        onTap: () => onTap(categories[i]),
       ),
     );
   }
@@ -120,9 +163,10 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _parseColor(category.color);
-    return InkWell(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      onLongPress: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
@@ -173,19 +217,21 @@ class _CategoryCard extends StatelessWidget {
 
 // ── Category form sheet ────────────────────────────────────────
 
-class _CategoryFormSheet extends StatefulWidget {
+class CategoryFormSheet extends StatefulWidget {
   final CategoryModel? editing;
-  const _CategoryFormSheet({this.editing});
+  final bool initialIsIncome;
+  const CategoryFormSheet({super.key, this.editing, this.initialIsIncome = false});
 
   @override
-  State<_CategoryFormSheet> createState() => _CategoryFormSheetState();
+  State<CategoryFormSheet> createState() => _CategoryFormSheetState();
 }
 
-class _CategoryFormSheetState extends State<_CategoryFormSheet> {
+class _CategoryFormSheetState extends State<CategoryFormSheet> {
   final _nameCtrl = TextEditingController();
   final _limitCtrl = TextEditingController();
   String _selectedColor = '#0F6E56';
   String _selectedIcon = 'other';
+  late bool _isIncome;
 
   static const _presetColors = [
     '#D85A30', '#378ADD', '#D4537E', '#BA7517',
@@ -200,9 +246,12 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
       _nameCtrl.text = widget.editing!.name;
       _selectedIcon = widget.editing!.icon;
       _selectedColor = widget.editing!.color;
+      _isIncome = widget.editing!.isIncome;
       if (widget.editing!.monthlyLimit != null) {
         _limitCtrl.text = widget.editing!.monthlyLimit!.toStringAsFixed(0);
       }
+    } else {
+      _isIncome = widget.initialIsIncome;
     }
   }
 
@@ -218,14 +267,38 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
     final authState = context.read<AuthBloc>().state;
     if (authState is! Authenticated) return;
 
+    final name = _nameCtrl.text.trim();
+
+    // Duplicate check: same name + same type, excluding self when editing.
+    final catState = context.read<CategoryBloc>().state;
+    if (catState is CategoryLoaded) {
+      final conflict = catState.categories.any((c) {
+        if (widget.editing != null && c.id == widget.editing!.id) return false;
+        return c.isIncome == _isIncome &&
+            c.name.toLowerCase() == name.toLowerCase();
+      });
+      if (conflict) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'A ${_isIncome ? 'income' : 'expense'} category named "$name" already exists.',
+            ),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+        return;
+      }
+    }
+
     final limit = double.tryParse(_limitCtrl.text.trim());
     if (widget.editing != null) {
       context.read<CategoryBloc>().add(
             UpdateCategory(widget.editing!.copyWith(
-              name: _nameCtrl.text.trim(),
+              name: name,
               icon: _selectedIcon,
               color: _selectedColor,
               monthlyLimit: limit,
+              isIncome: _isIncome,
               clearLimit: _limitCtrl.text.trim().isEmpty,
             )),
           );
@@ -233,10 +306,11 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
       final cat = CategoryModel(
         id: const Uuid().v4(),
         uid: authState.user.uid,
-        name: _nameCtrl.text.trim(),
+        name: name,
         icon: _selectedIcon,
         color: _selectedColor,
         monthlyLimit: limit,
+        isIncome: _isIncome,
       );
       context.read<CategoryBloc>().add(AddCategory(cat));
     }
@@ -283,7 +357,61 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
               widget.editing != null ? 'Edit Category' : 'New Category',
               style: AppTypography.headingMedium,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+
+            // Expense / Income toggle
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _isIncome = false),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: !_isIncome ? AppColors.ink : AppColors.cream200,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Expense',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: !_isIncome ? AppColors.paper : AppColors.stone600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _isIncome = true),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: _isIncome ? AppColors.ink : AppColors.cream200,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Income',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: _isIncome ? AppColors.paper : AppColors.stone600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
 
             TextField(
               controller: _nameCtrl,
@@ -384,7 +512,7 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
 
             Row(
               children: [
-                if (widget.editing != null && !widget.editing!.isDefault)
+                if (widget.editing != null) ...[
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
@@ -400,8 +528,8 @@ class _CategoryFormSheetState extends State<_CategoryFormSheet> {
                       child: const Text('Delete'),
                     ),
                   ),
-                if (widget.editing != null && !widget.editing!.isDefault)
                   const SizedBox(width: 12),
+                ],
                 Expanded(
                   child: ElevatedButton(
                     onPressed: _save,

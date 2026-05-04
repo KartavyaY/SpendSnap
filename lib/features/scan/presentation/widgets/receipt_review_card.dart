@@ -52,6 +52,7 @@ class _ReceiptReviewCardState extends State<ReceiptReviewCard> {
   void dispose() {
     _amountCtrl.dispose();
     _merchantCtrl.dispose();
+    widget.image.delete().catchError((_) {});
     super.dispose();
   }
 
@@ -103,16 +104,6 @@ class _ReceiptReviewCardState extends State<ReceiptReviewCard> {
     }
   }
 
-  // Icons + name fragments that represent income — never valid for receipts.
-  static const _incomeIcons = {'salary'};
-  static const _incomeNameFragments = {'salary', 'income', 'wage', 'bonus'};
-
-  static bool _isIncomeCategory(CategoryModel c) {
-    if (_incomeIcons.contains(c.icon.toLowerCase().trim())) return true;
-    final name = c.name.toLowerCase();
-    return _incomeNameFragments.any(name.contains);
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<CategoryBloc, CategoryState>(
@@ -122,7 +113,7 @@ class _ReceiptReviewCardState extends State<ReceiptReviewCard> {
             : <CategoryModel>[];
         // Receipts are always expenses — filter income categories out.
         final categories =
-            allCategories.where((c) => !_isIncomeCategory(c)).toList();
+            allCategories.where((c) => !c.isIncome).toList();
         _initCategory(categories);
 
         final confColor = _confidenceColor(widget.result.confidence);

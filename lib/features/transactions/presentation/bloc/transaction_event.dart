@@ -34,7 +34,7 @@ class DeleteTransaction extends TransactionEvent {
 
 class FilterTransactions extends TransactionEvent {
   final TransactionType? typeFilter;
-  final String? categoryFilter;
+  final List<String> categoryFilters;
   final DateTime? from;
   final DateTime? to;
   final String? searchQuery;
@@ -43,7 +43,7 @@ class FilterTransactions extends TransactionEvent {
 
   const FilterTransactions({
     this.typeFilter,
-    this.categoryFilter,
+    this.categoryFilters = const [],
     this.from,
     this.to,
     this.searchQuery,
@@ -52,5 +52,5 @@ class FilterTransactions extends TransactionEvent {
 
   @override
   List<Object?> get props =>
-      [typeFilter, categoryFilter, from, to, searchQuery, categoryNames];
+      [typeFilter, categoryFilters, from, to, searchQuery, categoryNames];
 }
