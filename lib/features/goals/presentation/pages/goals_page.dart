@@ -75,6 +75,7 @@ class GoalsPage extends StatelessWidget {
 
   void _showAddGoalSheet(BuildContext context) {
     showModalBottomSheet(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       builder: (_) => BlocProvider.value(
@@ -188,6 +189,7 @@ class _GoalCard extends StatelessWidget {
   void _showContributeSheet(BuildContext context, GoalModel goal) {
     final ctrl = TextEditingController();
     showModalBottomSheet(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       builder: (ctx) => BlocProvider.value(

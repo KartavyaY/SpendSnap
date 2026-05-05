@@ -114,33 +114,56 @@ class MainShell extends StatelessWidget {
         return i;
       }
     }
-    return 0;
+    return -1;
   }
 
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     final currentIndex = _currentIndex(location);
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final pillHeight = 70.0 + ((safeBottom - 16).clamp(0.0, double.infinity));
+    final scrollClearance = pillHeight + 24;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: Scaffold(
-        body: Column(
+        body: Stack(
           children: [
-            const OfflineBanner(),
-            Expanded(child: child),
+            MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                padding: MediaQuery.of(context).padding.copyWith(
+                  bottom: scrollClearance,
+                ),
+                viewPadding: MediaQuery.of(context).viewPadding.copyWith(
+                  bottom: scrollClearance,
+                ),
+              ),
+              child: Column(
+                children: [
+                  const OfflineBanner(),
+                  Expanded(child: child),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _SpendSnapTabBar(
+                currentIndex: currentIndex,
+                safeBottom: safeBottom,
+                onTap: (i) {
+                  if (i == 2) {
+                    context.go('/scan');
+                  } else {
+                    context.go(_tabRoutes[i]!);
+                  }
+                },
+              ),
+            ),
           ],
-        ),
-        bottomNavigationBar: _SpendSnapTabBar(
-          currentIndex: currentIndex,
-          onTap: (i) {
-            if (i == 2) {
-              context.go('/scan');
-            } else {
-              context.go(_tabRoutes[i]!);
-            }
-          },
         ),
       ),
     );
@@ -149,93 +172,115 @@ class MainShell extends StatelessWidget {
 
 class _SpendSnapTabBar extends StatelessWidget {
   final int currentIndex;
+  final double safeBottom;
   final ValueChanged<int> onTap;
 
   const _SpendSnapTabBar({
     required this.currentIndex,
+    required this.safeBottom,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final barHeight =
-        64.0 + (bottomPadding > 0 ? bottomPadding : 16.0);
-
-    return SizedBox(
-      height: barHeight,
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Color(0xEBFAF7F2),
-              border: Border(
-                top: BorderSide(color: AppColors.borderHair, width: 1),
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        bottom: (safeBottom - 16).clamp(0.0, double.infinity),
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(35),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 32,
+              spreadRadius: 0,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              spreadRadius: 0,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(35),
+          clipBehavior: Clip.antiAlias,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+            child: Container(
+              height: 70,
+              decoration: BoxDecoration(
+                color: const Color(0x55FAF7F2),
+                borderRadius: BorderRadius.circular(35),
+                border: Border.all(
+                  color: AppColors.borderHair,
+                  width: 1,
+                ),
               ),
-            ),
-            padding: EdgeInsets.only(
-              top: 8,
-              bottom: bottomPadding > 0 ? bottomPadding : 8,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _TabItem(
-                  icon: Icons.home_outlined,
-                  label: 'Home',
-                  active: currentIndex == 0,
-                  onTap: () => onTap(0),
-                ),
-                _TabItem(
-                  icon: Icons.receipt_long_outlined,
-                  label: 'Activity',
-                  active: currentIndex == 1,
-                  onTap: () => onTap(1),
-                ),
-                // Center snap button
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: GestureDetector(
-                      onTap: () => onTap(2),
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.orange,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.orange.withValues(alpha: 0.4),
-                              blurRadius: 16,
-                              spreadRadius: 0,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt_outlined,
-                          color: Colors.white,
-                          size: 22,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _TabItem(
+                    icon: Icons.home_outlined,
+                    label: 'Home',
+                    active: currentIndex == 0,
+                    onTap: () => onTap(0),
+                  ),
+                  _TabItem(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Activity',
+                    active: currentIndex == 1,
+                    onTap: () => onTap(1),
+                  ),
+                  // Center scan button
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: GestureDetector(
+                        onTap: () => onTap(2),
+                        child: Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppColors.orange,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.orange.withValues(alpha: 0.38),
+                                blurRadius: 14,
+                                spreadRadius: 0,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.white,
+                            size: 26,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                _TabItem(
-                  icon: Icons.pie_chart_outline_outlined,
-                  label: 'Plan',
-                  active: currentIndex == 3,
-                  onTap: () => onTap(3),
-                ),
-                _TabItem(
-                  icon: Icons.person_outline,
-                  label: 'Me',
-                  active: currentIndex == 4,
-                  onTap: () => onTap(4),
-                ),
-              ],
+                  _TabItem(
+                    icon: Icons.pie_chart_outline_outlined,
+                    label: 'Plan',
+                    active: currentIndex == 3,
+                    onTap: () => onTap(3),
+                  ),
+                  _TabItem(
+                    icon: Icons.person_outline,
+                    label: 'Me',
+                    active: currentIndex == 4,
+                    onTap: () => onTap(4),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -268,7 +313,7 @@ class _TabItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 22, color: color),
+            Icon(icon, size: 26, color: color),
             const SizedBox(height: 3),
             Text(
               label,

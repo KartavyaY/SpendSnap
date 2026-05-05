@@ -103,6 +103,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
     DateTime? sheetTo = _to;
 
     showModalBottomSheet(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.paper,
@@ -342,17 +343,39 @@ class _TransactionListPageState extends State<TransactionListPage> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: _searchActive
-            ? TextField(
-                controller: _searchCtrl,
-                autofocus: true,
-                onChanged: _onSearch,
-                style: AppTypography.bodyMedium,
-                decoration: const InputDecoration(
-                  hintText: 'Search transactions…',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              )
+            ? SizedBox(
+          height: 40,
+          child: TextField(
+            controller: _searchCtrl,
+            autofocus: true,
+            onChanged: _onSearch,
+            style: AppTypography.bodyMedium,
+            decoration: InputDecoration(
+              hintText: 'Search transactions…',
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+              filled: true,
+              // Make sure this color exists and contrasts with your AppBar
+              fillColor: AppColors.cream200,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+
+              // 1. Default border
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(999),
+                borderSide: BorderSide.none,
+              ),
+              // 2. Border when not selected
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(999),
+                borderSide: BorderSide.none,
+              ),
+              // 3. Border when you are actively typing inside it
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(999),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        )
             : const Text('Activity'),
         leading: IconButton(
           icon: Icon(_searchActive ? Icons.close : Icons.search),
@@ -475,7 +498,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
                       final grouped = _groupByDate(txns);
 
                       return ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                        padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom),
                         itemCount: grouped.length,
                         itemBuilder: (_, groupIndex) {
                           final label =
@@ -561,12 +584,15 @@ class _TransactionListPageState extends State<TransactionListPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/transactions/add'),
-        backgroundColor: AppColors.orange,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Add'),
+      floatingActionButton: Transform.translate(
+        offset: const Offset(0, 24),
+        child: FloatingActionButton.extended(
+          onPressed: () => context.go('/transactions/add'),
+          backgroundColor: AppColors.orange,
+          foregroundColor: Colors.white,
+          icon: const Icon(Icons.add),
+          label: const Text('Add'),
+        ),
       ),
     );
   }

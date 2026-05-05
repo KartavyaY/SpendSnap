@@ -44,7 +44,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       try {
         rawText = await _ocr.processImage(file);
       } on PlatformException catch (e) {
-        await file.delete().catchError((_) {});
+        try { await file.delete(); } catch (_) {}
         emit(ScanError(
             "Couldn't read this image. Try again with better lighting. (${e.code})"));
         return;
@@ -60,7 +60,7 @@ class ScanBloc extends Bloc<ScanEvent, ScanState> {
       // file held by ReceiptReviewCard until widget disposes
       emit(ScanParsed(result, file));
     } catch (e) {
-      await file?.delete().catchError((_) {});
+      if (file != null) try { await file.delete(); } catch (_) {}
       emit(ScanError('Something went wrong: $e'));
     }
   }

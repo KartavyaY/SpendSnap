@@ -91,12 +91,16 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       if (t.categoryId != categoryId) return false;
       if (t.date.year != _date.year ||
           t.date.month != _date.month ||
-          t.date.day != _date.day) return false;
+          t.date.day != _date.day) {
+        return false;
+      }
       // Different merchants on same day = not a duplicate
       final tNote = t.note?.trim().toLowerCase();
       if (normalizedNote != null &&
           tNote != null &&
-          normalizedNote != tNote) return false;
+          normalizedNote != tNote) {
+        return false;
+      }
       return true;
     });
   }
@@ -145,6 +149,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       if (confirmed != true) return;
     }
 
+    if (!mounted) return;
+
     final txn = TransactionModel(
       id: _editingTransaction?.id ?? const Uuid().v4(),
       uid: authState.user.uid,
@@ -180,6 +186,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
   void _pickFrequency(BuildContext ctx) {
     showModalBottomSheet(
+      useRootNavigator: true,
       context: ctx,
       backgroundColor: AppColors.paper,
       shape: const RoundedRectangleBorder(
@@ -328,11 +335,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             ),
           ),
           body: Builder(builder: (context) {
-            final bottomInset = MediaQuery.of(context).padding.bottom;
-            // Background starts at button midpoint (26px up from button bottom).
-            final bgHeight = 26 + 16 + bottomInset;
-            // Button bottom sits 16px + safe-area above screen bottom.
-            final btnBottom = 16 + bottomInset;
+            // padding.bottom = pillHeight (set by MainShell overlay).
+            // Button sits 16px above the pill's top edge.
+            final btnBottom = 16.0 + MediaQuery.of(context).padding.bottom;
             return Stack(
               children: [
                 SingleChildScrollView(
@@ -458,6 +463,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                       final catBloc = context.read<CategoryBloc>();
                       final authBloc = context.read<AuthBloc>();
                       showModalBottomSheet(
+                        useRootNavigator: true,
                         context: context,
                         isScrollControlled: true,
                         backgroundColor: AppColors.paper,
@@ -482,6 +488,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                       final catBloc = context.read<CategoryBloc>();
                       final authBloc = context.read<AuthBloc>();
                       showModalBottomSheet(
+                        useRootNavigator: true,
                         context: context,
                         isScrollControlled: true,
                         backgroundColor: AppColors.paper,
@@ -510,6 +517,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
+                          padding: EdgeInsets.zero,
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
@@ -535,13 +543,13 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                                       style: BorderStyle.solid,
                                     ),
                                   ),
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(Icons.add,
                                           size: 14,
                                           color: AppColors.stone600),
-                                      const SizedBox(width: 4),
+                                      SizedBox(width: 4),
                                       Flexible(
                                         child: Text(
                                           'Add',
@@ -626,7 +634,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                             );
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
                       ],
                     );
                   }),
@@ -751,14 +759,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               ),
             ),
           ),
-                // Half-height background behind button
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: bgHeight,
-                  child: const ColoredBox(color: AppColors.paper),
-                ),
                 // Floating button
                 Positioned(
                   left: 16,

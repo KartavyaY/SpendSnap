@@ -70,6 +70,7 @@ class CategoriesPage extends StatelessWidget {
 
   void _showAddCategorySheet(BuildContext context, {bool initialIsIncome = false}) {
     showModalBottomSheet(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.paper,
@@ -88,6 +89,7 @@ class CategoriesPage extends StatelessWidget {
 
   void _showEditCategorySheet(BuildContext context, CategoryModel cat) {
     showModalBottomSheet(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.paper,
@@ -128,7 +130,7 @@ class _CategoryGrid extends StatelessWidget {
       );
     }
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
         crossAxisSpacing: 12,

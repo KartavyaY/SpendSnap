@@ -113,6 +113,7 @@ void _showSetBudgetSheet(
       : <CategoryModel>[];
 
   showModalBottomSheet(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     backgroundColor: AppColors.paper,
@@ -130,6 +131,7 @@ void _showSetBudgetSheet(
 
 void _showGoalSheet(BuildContext context) {
   showModalBottomSheet(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     backgroundColor: AppColors.paper,
@@ -178,7 +180,7 @@ class _BudgetsTab extends StatelessWidget {
           }
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom),
             children: [
               _OverallBudgetCard(state: state),
               const SizedBox(height: 16),
@@ -224,7 +226,7 @@ class _SavingsTab extends StatelessWidget {
 
         if (state is GoalLoaded && state.goals.isNotEmpty) {
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom),
             children: [
               if (state.active.isNotEmpty) ...[
                 const Text('Active', style: AppTypography.headingMedium),
@@ -290,11 +292,14 @@ class _OverallBudgetCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${CurrencyFormatter.format(state.totalSpent)} of '
-            '${CurrencyFormatter.format(state.totalBudget)} spent',
-            style: AppTypography.displayM,
+            '${CurrencyFormatter.format(state.totalSpent)}',
+            style: AppTypography.moneyDisplay(32),
           ),
-          const SizedBox(height: 16),
+          Text(
+            'of ${CurrencyFormatter.format(state.totalBudget)}',
+            style: AppTypography.moneyDisplay(20),
+          ),
+          const SizedBox(height: 20),
           Row(
             children: [
               SpendRing(
@@ -311,13 +316,13 @@ class _OverallBudgetCard extends StatelessWidget {
                   children: [
                     Text(
                       'Overall Budget',
-                      style: AppTypography.label
-                          .copyWith(color: AppColors.stone600),
+                      style: AppTypography.moneyBody
+                          .copyWith(color: AppColors.stone600, fontSize:15),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${CurrencyFormatter.format((state.totalBudget - state.totalSpent).clamp(0, double.infinity))} remaining',
-                      style: AppTypography.caption.copyWith(color: color),
+                      style: AppTypography.moneySmall.copyWith(color: color, fontSize: 15),
                     ),
                   ],
                 ),
@@ -392,8 +397,7 @@ class _BudgetCard extends StatelessWidget {
                     Text(
                       '${CurrencyFormatter.format(budget.spent)} / '
                       '${CurrencyFormatter.format(budget.limit)}',
-                      style: AppTypography.caption
-                          .copyWith(color: AppColors.stone600),
+                      style: AppTypography.moneySmall,
                     ),
                   ],
                 ),
@@ -445,7 +449,7 @@ class _BudgetCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'Over by ${CurrencyFormatter.format(budget.spent - budget.limit)}',
-              style: AppTypography.caption.copyWith(color: AppColors.danger),
+              style: AppTypography.moneySmall.copyWith(color: AppColors.danger),
             ),
           ] else if (budget.isNearLimit) ...[
             const SizedBox(height: 6),
@@ -513,7 +517,7 @@ class _GoalCard extends StatelessWidget {
                     Text(
                       '${CurrencyFormatter.format(goal.currentAmount)} / '
                       '${CurrencyFormatter.format(goal.targetAmount)}',
-                      style: AppTypography.bodyMedium
+                      style: AppTypography.moneyBody
                           .copyWith(color: AppColors.textSecondary),
                     ),
                     if (goal.deadline != null) ...[
@@ -528,7 +532,7 @@ class _GoalCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '${CurrencyFormatter.format(goal.remaining)} to go',
-                        style: AppTypography.caption
+                        style: AppTypography.moneySmall
                             .copyWith(color: AppColors.primaryLight),
                       ),
                     ],
@@ -576,6 +580,7 @@ class _GoalCard extends StatelessWidget {
     final remaining = goal.remaining;
 
     showModalBottomSheet(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.paper,
@@ -657,6 +662,7 @@ class _GoalCard extends StatelessWidget {
 
 void _showEditGoalSheet(BuildContext context, GoalModel goal) {
   showModalBottomSheet(
+    useRootNavigator: true,
     context: context,
     isScrollControlled: true,
     backgroundColor: AppColors.paper,
@@ -939,6 +945,7 @@ class _SetBudgetSheetState extends State<_SetBudgetSheet> {
 
   void _pickCategory(BuildContext ctx) {
     showModalBottomSheet(
+      useRootNavigator: true,
       context: ctx,
       backgroundColor: AppColors.paper,
       isScrollControlled: true,

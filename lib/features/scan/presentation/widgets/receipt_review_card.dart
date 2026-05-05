@@ -52,7 +52,7 @@ class _ReceiptReviewCardState extends State<ReceiptReviewCard> {
   void dispose() {
     _amountCtrl.dispose();
     _merchantCtrl.dispose();
-    widget.image.delete().catchError((_) {});
+    widget.image.delete().catchError((Object _) => widget.image);
     super.dispose();
   }
 

@@ -56,6 +56,7 @@ class _DashboardPageState extends State<DashboardPage> {
         : [];
 
     showModalBottomSheet(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.paper,
@@ -358,7 +359,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   final recent = transactions.take(5).toList();
 
                   return ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom),
                     children: [
                       // Hero ink card
                       _HeroCard(
@@ -622,7 +623,9 @@ class _GoalChip extends StatelessWidget {
   void _showContributeSheet(BuildContext context) {
     final ctrl = TextEditingController();
     final remaining = goal.remaining;
+    final goalBloc = context.read<GoalBloc>();
     showModalBottomSheet(
+      useRootNavigator: true,
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.paper,
@@ -630,7 +633,7 @@ class _GoalChip extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => BlocProvider.value(
-        value: context.read<GoalBloc>(),
+        value: goalBloc,
         child: StatefulBuilder(
           builder: (ctx, setSheet) {
             String? errorText;
@@ -640,7 +643,7 @@ class _GoalChip extends StatelessWidget {
                 setSheet(() => errorText = 'Enter a valid amount');
                 return;
               }
-              context.read<GoalBloc>().add(ContributeToGoal(goal.id, amount));
+              goalBloc.add(ContributeToGoal(goal.id, amount));
               Navigator.pop(ctx);
             }
 

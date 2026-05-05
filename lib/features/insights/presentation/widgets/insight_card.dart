@@ -82,7 +82,7 @@ class InsightCard extends StatelessWidget {
                   onTap: () => context
                       .read<InsightBloc>()
                       .add(DismissInsight(insight.id)),
-                  child: Icon(Icons.close, size: 16, color: AppColors.stone500),
+                  child: const Icon(Icons.close, size: 16, color: AppColors.stone500),
                 ),
               if (restorable)
                 GestureDetector(
@@ -92,7 +92,7 @@ class InsightCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.restore, size: 14, color: AppColors.stone500),
+                      const Icon(Icons.restore, size: 14, color: AppColors.stone500),
                       const SizedBox(width: 3),
                       Text(
                         'Restore',

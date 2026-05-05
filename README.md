@@ -1,101 +1,117 @@
 # SpendSnap
 
-A personal finance tracker built with Flutter and Firebase. Track expenses, set budgets, save toward goals, and get AI-powered insights — all in a clean, opinionated UI.
+Personal finance tracker. Flutter + Firebase. Track spending, set budgets, hit savings goals, scan receipts with on-device AI.
 
 ---
 
-## What you can do today
+## Features
 
 ### Track money
-- **Log transactions** — income and expenses, with categories, notes, dates, and recurring schedules
-- **Activity view** — full transaction list with live search (note, amount, category) and filters (type, category, date range)
-- **Edit / delete** — full CRUD with optimistic updates
+- Log income + expenses with category, notes, date, recurring schedule
+- Full transaction list — live search (note/amount/category), filters (type/category/date range)
+- Edit + delete with optimistic updates
+- Floating add button on activity page
 
 ### Categorize
-- 31 built-in Lucide vector icons (food, transport, shopping, bills, etc.)
+- 31 built-in vector icons (food, transport, bills, etc.)
 - Custom categories with icon + color picker
-- Backward-compatible with old emoji-based data
+- Income/expense classification per category
+- Default categories editable + deletable
+- Inline "+ Add category" tile in transaction picker — no navigation needed
+- Backward-compat with legacy emoji-based data
 
 ### Plan
-- **Budgets** — set monthly limits per category, see progress rings, get over/near-limit alerts
-- **Goals** — savings targets with contributions, progress rings that change color from red → amber → green based on completion
-- Combined "Plan" tab for budgets and goals
+- **Budgets** — monthly limits per category, progress rings, near-limit + over-limit alerts
+- **Savings goals** — target amount, deadline, contribute flow, ring color shifts red → amber → green
+- Combined "Plan" tab with Budgets + Savings sub-tabs
 
-### Insights (rule-based AI)
-- Weekend vs. weekday spending pattern detection
-- Category drift (50%+ month-over-month increases)
-- Burn-rate projection (will you exceed budget at current pace?)
-- Unusual transaction detection (>2σ from 30-day mean)
-- Savings streak achievements (consecutive months of net savings)
-- **Dismissible + restorable** — dismissed insights stay dismissed across re-generations
-- Minimum data threshold (7 transactions across 3 unique days) before generating to avoid noise
+### Receipt scan (on-device AI)
+- Camera capture → on-device OCR → AI parse → review screen → save as transaction
+- Two-stage pipeline:
+  1. **Google ML Kit** — text recognition runs fully on-device (Apple Vision on iOS, Google ML on Android)
+  2. **Groq LLM API** — parses raw OCR text into structured JSON (merchant, amount, date, items, category guess)
+- Review card shows extracted fields, lets user edit before save
+- Picks expense category by default (Salary excluded from picker)
 
-### Notifications
-- Bell icon with badge showing combined count of budget alerts + active insights
-- Bottom sheet with budget alerts, active insights, and dismissed insights with "Restore"
+### Insights (rule-based)
+- Weekend vs weekday spend pattern
+- Category drift detection (50%+ MoM increase)
+- Burn-rate projection (will you blow budget at current pace?)
+- Unusual transaction flag (>2σ from 30-day mean)
+- Savings streak achievements
+- Dismissible + restorable
+- Min data threshold (7 txns across 3 days) before generating
+
+### Dashboard
+- Overall spend ring + budget heatmap
+- Active goal chips → tap to contribute
+- Recent transactions feed
+- Notification bell — combined badge for budget alerts + active insights
+- Notification sheet with dismiss/restore for insights
 
 ### Auth
-- Email/password
-- Google Sign-In
-- Persistent session
+- Email + password
+- Google Sign-In (OAuth)
+- Persistent session via Firebase Auth state stream
+- GoRouter redirect guards
 
 ### UX polish
-- Light/dark theme support
-- Offline banner when network drops
-- Keyboard auto-dismiss on tap outside (login + main app)
-- Tappable goal chips on dashboard → quick contribute sheet
+- Glass/frosted floating pill nav (BackdropFilter blur + transparent fill)
+- Editorial typography — Instrument Serif headings, JetBrains Mono for currency, system font body
+- Warm beige + ink palette
+- Offline banner on disconnect
+- Keyboard auto-dismiss on tap-outside
+- Smooth modal sheets with safe-area handling
+- Dynamic safe-area override propagates pill clearance to all scroll views
 
 ---
 
-## On the roadmap: Receipt scanning with on-device AI
+## Architecture
 
-**Goal:** Tap the camera button → snap a photo of a receipt → AI extracts amount, date, merchant, and suggests a category → review and save as a transaction.
+Clean architecture + feature-first folder layout.
 
-This is the next big feature. The plan is **on-device AI by default** so receipts never leave your phone.
+```
+lib/
+├── core/                 # Theme, routing, utils, DI
+│   ├── routing/          # GoRouter + ShellRoute + MainShell (pill nav)
+│   ├── theme/            # AppColors, AppTypography
+│   └── utils/            # CurrencyFormatter, CategoryIcon, DateUtils
+├── features/             # One folder per domain
+│   ├── auth/
+│   ├── transactions/
+│   ├── categories/
+│   ├── budgets/
+│   ├── goals/
+│   ├── analytics/
+│   ├── dashboard/
+│   ├── insights/
+│   └── scan/             # Receipt OCR + AI parse
+└── shared/widgets/       # Reusable: EmptyState, LoadingIndicator, etc.
+```
 
-### AI architecture options
+Per-feature layers:
+- **domain/** — models, business rules (pure Dart, no Flutter)
+- **data/** — repositories, Firestore queries
+- **presentation/** — BLoC (event/state/bloc) + pages + widgets
 
-We've evaluated three approaches:
+Dependencies flow inward: presentation → data → domain.
 
-#### Option A — Google ML Kit + custom parser (recommended for v1)
-- **What it is:** ML Kit's text recognition (OCR) runs fully on-device. On iOS it uses Apple's Vision framework under the hood; on Android it uses Google's. We add a custom parser that scans the OCR text for `TOTAL`, currency-formatted numbers, dates, and merchant names.
-- **Pros:** Cross-platform (iOS + Android), free, fully on-device, no model download, works on any modern phone, fast (sub-second).
-- **Cons:** Receipts with messy layouts may need manual correction. Parsing is heuristic, not LLM-grade.
-- **Privacy:** Image and text never leave the device.
+---
 
-#### Option B — Apple Intelligence (iOS-only enhancement)
-- **What it is:** iOS 18.1+ Foundation Models framework gives access to a structured on-device LLM. Combined with Vision OCR, we can ask the LLM "extract amount, merchant, date as JSON" and get high-quality structured output.
-- **Pros:** Smart parsing of messy receipts, handles edge cases (foreign currencies, split totals, tips), private (fully on-device).
-- **Cons:** iOS 18.1+ only, requires A17 Pro or M-series chip (iPhone 15 Pro and newer), needs a Flutter platform channel to bridge Swift → Dart, doesn't help Android users.
-- **When we'd add it:** As an iOS-only enhancement layered on top of Option A. If `FoundationModels` is available, use it; otherwise fall back to the ML Kit parser.
+## State management
 
-#### Option C — Cloud LLM (Claude / GPT vision)
-- **What it is:** Send the receipt image to a cloud API (Anthropic Claude or OpenAI vision).
-- **Pros:** Highest accuracy, handles any receipt layout.
-- **Cons:** Costs money per scan, requires internet, image leaves the device, adds latency.
-- **Decision:** Skip for v1. Could add later as an opt-in "premium accuracy" mode.
+`flutter_bloc` (BLoC pattern). One bloc per domain:
 
-### Implementation plan
+| Bloc | Responsibility |
+|---|---|
+| AuthBloc | Sign-in/out, listens to `authStateChanges()` |
+| TransactionBloc | CRUD, filter, search |
+| CategoryBloc | Category CRUD, default seeding |
+| BudgetBloc | Budget limits, calc spent/remaining |
+| GoalBloc | Goal CRUD, contributions, completion |
+| InsightBloc | Rule engine, dismiss/restore |
 
-1. **Capture** — `image_picker` opens the native camera, returns a photo file
-2. **OCR** — `google_mlkit_text_recognition` extracts text blocks on-device
-3. **Parse** — custom Dart parser with heuristics:
-   - **Amount:** find lines containing `TOTAL`, `AMOUNT`, `GRAND TOTAL`, `BALANCE`; pick the largest currency-formatted number near the bottom
-   - **Date:** regex against common formats (`DD/MM/YYYY`, `MM-DD-YYYY`, `Jan 5 2024`, etc.)
-   - **Merchant:** first 1–3 lines, filter out address-like lines
-   - **Category hint:** keyword match against existing category names (e.g. "STARBUCKS" → Food)
-4. **Review screen** — show captured photo + extracted fields, user edits if needed
-5. **Save** — submit through existing `AddTransaction` event
-6. **iOS enhancement (later):** platform channel calling Foundation Models for ambiguous receipts
-
-### Permissions needed
-- iOS: `NSCameraUsageDescription` in `Info.plist`
-- Android: `<uses-permission android:name="android.permission.CAMERA" />`
-
-### Privacy commitment
-- v1 (ML Kit only): zero network calls for receipt processing
-- v2 (Apple Intelligence): still zero network calls
-- Cloud option, if added: opt-in only, with clear consent
+Events → bloc → state (`Loading | Loaded | Error`). UI rebuilds via `BlocBuilder`. Side-effects via `BlocListener`. `BlocProvider.value` propagates blocs into modal sheets.
 
 ---
 
@@ -104,49 +120,50 @@ We've evaluated three approaches:
 | Layer | Tech |
 |---|---|
 | UI | Flutter (Material 3) |
-| State | flutter_bloc |
-| Routing | go_router (ShellRoute with bottom nav) |
+| State | flutter_bloc, equatable |
+| Routing | go_router (ShellRoute) |
 | Backend | Firebase Auth + Cloud Firestore |
+| Auth | firebase_auth + google_sign_in |
 | DI | get_it |
 | Charts | fl_chart |
-| Icons | lucide_icons |
-| Fonts | google_fonts |
+| Icons | lucide_icons + Material Icons |
+| Fonts | google_fonts (Instrument Serif, JetBrains Mono) |
+| OCR | google_mlkit_text_recognition (on-device) |
+| LLM | Groq API (HTTP) |
+| Storage | shared_preferences (prefs), Firestore (data) |
+| Network | connectivity_plus, http |
+| Env | flutter_dotenv |
 
 ---
 
-## Project structure
+## Data model
+
+Firestore per-user collections:
 
 ```
-lib/
-├── core/                    # Theme, routing, utils, DI
-│   ├── routing/
-│   ├── theme/
-│   └── utils/
-├── features/                # Feature-first organization
-│   ├── auth/                # Login, signup, profile
-│   ├── transactions/        # Add, edit, list, search, filter
-│   ├── categories/          # Category CRUD with icon picker
-│   ├── budgets/             # Monthly limits + goals (Plan tab)
-│   ├── goals/               # Savings goals
-│   ├── analytics/           # Charts and breakdowns
-│   ├── dashboard/           # Home: rings, goals, recent activity, notifications
-│   └── insights/            # Rule-based insight engine + bloc
-└── shared/                  # Reusable widgets
+users/{uid}/
+├── transactions/{id}    # amount, type, categoryId, note, date, recurring
+├── categories/{id}      # name, icon, color, isIncome, monthlyLimit?
+├── goals/{id}           # title, targetAmount, currentAmount, deadline, status
+└── prefs/...            # dismissed insight IDs, etc.
 ```
 
-Each feature follows: `domain/` (models, business rules) → `data/` (Firestore repos) → `presentation/` (bloc + pages + widgets).
+Budgets are derived from category `monthlyLimit` + transaction aggregation — no separate budget collection.
+
+Firestore offline persistence enabled by default → cached reads, queued writes, syncs on reconnect.
 
 ---
 
 ## Setup
 
-### Prerequisites
+### Prereqs
 - Flutter 3.19+
-- Firebase project with Auth (Email + Google) and Firestore enabled
+- Firebase project (Auth + Firestore enabled)
 - iOS: Xcode 15+, CocoaPods
 - Android: Android Studio, JDK 17
+- Groq API key (free tier OK)
 
-### First run
+### Install
 
 ```bash
 git clone https://github.com/KartavyaY/SpendSnap.git
@@ -156,43 +173,68 @@ flutter pub get
 
 ### Firebase config
 
-`lib/firebase_options.dart` is **gitignored** (contains API keys). Generate your own:
+`lib/firebase_options.dart` is gitignored. Generate:
 
 ```bash
 dart pub global activate flutterfire_cli
 flutterfire configure
 ```
 
-Then run:
+### Env vars
+
+Create `.env` in project root:
+
+```
+GROQ_API_KEY=your_key_here
+```
+
+Loaded at startup via `flutter_dotenv`.
+
+### Google Sign-In
+
+Project starts in Firebase "Testing" mode — add your Gmail under **Google Cloud Console → APIs & Services → OAuth consent screen → Test users**. Publish flow requires Google review.
+
+### Run
 
 ```bash
 flutter run
 ```
 
-### Google Sign-In
+---
 
-For your own Firebase project, you'll need to set up OAuth client IDs in the Firebase Console. While in development, your project is in "Testing" mode — add your own Gmail under **Google Cloud Console → APIs & Services → OAuth consent screen → Test users** so you can sign in. Publishing to verified status requires Google's review process.
+## Permissions
+
+- **iOS** (`Info.plist`): `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`
+- **Android** (`AndroidManifest.xml`): `CAMERA`, `INTERNET`
+
+---
+
+## Privacy
+
+- Receipt OCR runs fully on-device — image never leaves the phone for text extraction
+- OCR text (not image) sent to Groq for structured parse
+- Firestore writes go to user's own document tree (`users/{uid}/...`)
+- Auth tokens managed by Firebase SDK
+- No analytics or third-party tracking
 
 ---
 
 ## Roadmap
 
 - [x] Email + Google auth
-- [x] Transaction CRUD with categories, recurring
+- [x] Transaction CRUD with categories + recurring
 - [x] Search + filter activity
-- [x] Budget limits with alerts
-- [x] Savings goals with progress rings
-- [x] Rule-based insight engine
-- [x] Notification panel with dismiss/restore
-- [x] Lucide icon system with legacy fallback
-- [ ] **Receipt scanning (camera → OCR → AI parse → transaction)**
-- [ ] CSV / PDF export
-- [ ] Apple Intelligence integration for iOS 18.1+
-- [ ] Multi-currency support
-- [ ] Web build polish
-
+- [x] Budget limits + alerts
+- [x] Savings goals with rings
+- [x] Custom categories with income/expense classification
+- [x] Rule-based insights with dismiss/restore
+- [x] Notification panel
+- [x] Lucide icon system
+- [x] Receipt scanning (camera → ML Kit OCR → Groq LLM → transaction)
+- [x] Glass pill nav with BackdropFilter
+- [ ] Multi-currency
 ---
 
 ## License
 
-Personal project. Not yet open-sourced.
+Personal project. Not open-sourced.

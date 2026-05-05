@@ -87,7 +87,7 @@ class _SpendSnapAppState extends State<SpendSnapApp> {
         title: 'SpendSnap',
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.light,
         routerConfig: _appRouter.router,
         debugShowCheckedModeBanner: false,
       ),
