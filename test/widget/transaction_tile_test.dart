@@ -65,7 +65,7 @@ void main() {
 
       expect(find.textContaining('-'), findsOneWidget);
       final amountText = tester.widget<Text>(find.textContaining('-'));
-      expect(amountText.style?.color, AppColors.danger);
+      expect(amountText.style?.color, AppColors.ink);
     });
 
     testWidgets('tap callback fires on tile tap', (tester) async {

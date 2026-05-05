@@ -72,6 +72,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
   }
 
   void _onSearch(String query) {
+    setState(() {}); // refresh empty-state hint that reads _searchCtrl.text
     _applyFilter(
       type: _typeFilter,
       categoryIds: _categoryFilters,
@@ -584,16 +585,18 @@ class _TransactionListPageState extends State<TransactionListPage> {
           ),
         ],
       ),
-      floatingActionButton: Transform.translate(
-        offset: const Offset(0, 24),
-        child: FloatingActionButton.extended(
-          onPressed: () => context.go('/transactions/add'),
-          backgroundColor: AppColors.orange,
-          foregroundColor: Colors.white,
-          icon: const Icon(Icons.add),
-          label: const Text('Add'),
-        ),
-      ),
+      floatingActionButton: MediaQuery.of(context).viewInsets.bottom > 0
+          ? null
+          : Transform.translate(
+              offset: const Offset(0, 24),
+              child: FloatingActionButton.extended(
+                onPressed: () => context.go('/transactions/add'),
+                backgroundColor: AppColors.orange,
+                foregroundColor: Colors.white,
+                icon: const Icon(Icons.add),
+                label: const Text('Add'),
+              ),
+            ),
     );
   }
 }

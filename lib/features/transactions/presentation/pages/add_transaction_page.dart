@@ -337,7 +337,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           body: Builder(builder: (context) {
             // padding.bottom = pillHeight (set by MainShell overlay).
             // Button sits 16px above the pill's top edge.
-            final btnBottom = 16.0 + MediaQuery.of(context).padding.bottom;
+            // Sit just above pill: scrollClearance = pillHeight + 24, want ~8px above pill.
+            final btnBottom = MediaQuery.of(context).padding.bottom - 16;
             return Stack(
               children: [
                 SingleChildScrollView(

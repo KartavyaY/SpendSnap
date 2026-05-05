@@ -93,11 +93,22 @@ void main() {
       final lastMonthDate = DateTime(2023, 12, 10);
       final thisMonthDate = DateTime(2024, 1, 10);
 
+      // Rule fires only when engine has ≥7 expenses on ≥3 unique days.
+      // Add filler expenses spread across 3 days to satisfy the guard.
+      final fillers = [
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 1)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 2)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 3)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 4)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 5)),
+      ];
+
       final transactions = [
         // Last month: ₹2000
         _txn(amount: 2000, type: TransactionType.expense, date: lastMonthDate),
-        // This month: ₹3500 (75% increase)
+        // This month: ₹3500 (75% increase, >₹1000)
         _txn(amount: 3500, type: TransactionType.expense, date: thisMonthDate),
+        ...fillers,
       ];
 
       final insights = engine.generate(
@@ -128,9 +139,17 @@ void main() {
   group('InsightEngine — Rule 3: Burn rate projection', () {
     test('fires when projected spend exceeds budget by 10%', () {
       // Day 15, ₹1100 spent → projected: 1100/15*31 = ~2273. Budget = 1000. 2273 > 1100.
+      // Need ≥7 expenses on ≥3 unique days to pass the engine's data guard.
       final transactions = [
         _txn(amount: 1100, type: TransactionType.expense,
             date: DateTime(2024, 1, 10)),
+        // Filler expenses to satisfy _minTransactions=7 / _minUniqueDays=3
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 1)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 2)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 3)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 4)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 5)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 6)),
       ];
 
       final cat = _cat(monthlyLimit: 1000);
@@ -170,6 +189,17 @@ void main() {
 
   group('InsightEngine — Rule 5: Savings streak', () {
     test('fires when 2+ consecutive months have income > expense', () {
+      // Need ≥7 expenses on ≥3 unique days to pass the engine's data guard.
+      final fillers = [
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 1)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 2)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 3)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 4)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 5)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 6)),
+        _txn(amount: 50, type: TransactionType.expense, date: DateTime(2024, 1, 7)),
+      ];
+
       final transactions = [
         // Nov 2023: income > expense
         _txn(amount: 5000, type: TransactionType.income,
@@ -181,6 +211,7 @@ void main() {
             date: DateTime(2023, 12, 1)),
         _txn(amount: 3500, type: TransactionType.expense,
             date: DateTime(2023, 12, 15)),
+        ...fillers,
       ];
 
       final insights = engine.generate(
