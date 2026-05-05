@@ -2,7 +2,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-import 'package:spendsnap/features/budgets/domain/budget_model.dart';
 import 'package:spendsnap/features/budgets/presentation/bloc/budget_bloc.dart';
 import 'package:spendsnap/features/budgets/presentation/bloc/budget_event.dart';
 import 'package:spendsnap/features/budgets/presentation/bloc/budget_state.dart';
@@ -12,6 +11,7 @@ import 'package:spendsnap/features/transactions/data/transaction_repository.dart
 import 'package:spendsnap/features/transactions/domain/transaction_model.dart';
 
 class _MockCategoryRepo extends Mock implements CategoryRepository {}
+
 class _MockTransactionRepo extends Mock implements TransactionRepository {}
 
 // Factory helpers.
@@ -75,8 +75,8 @@ void main() {
         when(() => catRepo.fetchCategories()).thenAnswer(
           (_) async => [_cat(id: 'cat-food', monthlyLimit: 5000.0)],
         );
-        when(() => txnRepo.fetchTransactions(from: any(named: 'from'), to: any(named: 'to')))
-            .thenAnswer(
+        when(() => txnRepo.fetchTransactions(
+            from: any(named: 'from'), to: any(named: 'to'))).thenAnswer(
           (_) async => [_txn(id: 't1', categoryId: 'cat-food', amount: 1500.0)],
         );
       },
@@ -101,8 +101,9 @@ void main() {
             _cat(id: 'cat-b', monthlyLimit: 2000.0),
           ],
         );
-        when(() => txnRepo.fetchTransactions(from: any(named: 'from'), to: any(named: 'to')))
-            .thenAnswer((_) async => []);
+        when(() => txnRepo.fetchTransactions(
+            from: any(named: 'from'),
+            to: any(named: 'to'))).thenAnswer((_) async => []);
       },
       build: () => BudgetBloc(catRepo, txnRepo),
       act: (bloc) => bloc.add(const LoadBudgets()),
@@ -122,8 +123,8 @@ void main() {
         when(() => catRepo.fetchCategories()).thenAnswer(
           (_) async => [_cat(id: 'cat-food', monthlyLimit: 5000.0)],
         );
-        when(() => txnRepo.fetchTransactions(from: any(named: 'from'), to: any(named: 'to')))
-            .thenAnswer(
+        when(() => txnRepo.fetchTransactions(
+            from: any(named: 'from'), to: any(named: 'to'))).thenAnswer(
           (_) async => [
             _txn(id: 't1', categoryId: 'cat-food', amount: 1200.0),
             _txn(id: 't2', categoryId: 'cat-food', amount: 800.0),
@@ -152,8 +153,9 @@ void main() {
             _cat(id: 'cat-unlimited', monthlyLimit: null),
           ],
         );
-        when(() => txnRepo.fetchTransactions(from: any(named: 'from'), to: any(named: 'to')))
-            .thenAnswer((_) async => []);
+        when(() => txnRepo.fetchTransactions(
+            from: any(named: 'from'),
+            to: any(named: 'to'))).thenAnswer((_) async => []);
       },
       build: () => BudgetBloc(catRepo, txnRepo),
       act: (bloc) => bloc.add(const LoadBudgets()),
@@ -173,12 +175,18 @@ void main() {
         when(() => catRepo.fetchCategories()).thenAnswer(
           (_) async => [_cat(id: 'cat-food', monthlyLimit: 5000.0)],
         );
-        when(() => txnRepo.fetchTransactions(from: any(named: 'from'), to: any(named: 'to')))
-            .thenAnswer(
+        when(() => txnRepo.fetchTransactions(
+            from: any(named: 'from'), to: any(named: 'to'))).thenAnswer(
           (_) async => [
-            _txn(id: 'expense', categoryId: 'cat-food', amount: 500.0,
+            _txn(
+                id: 'expense',
+                categoryId: 'cat-food',
+                amount: 500.0,
                 type: TransactionType.expense),
-            _txn(id: 'income', categoryId: 'cat-food', amount: 2000.0,
+            _txn(
+                id: 'income',
+                categoryId: 'cat-food',
+                amount: 2000.0,
                 type: TransactionType.income),
           ],
         );
@@ -201,8 +209,9 @@ void main() {
         when(() => catRepo.fetchCategories()).thenAnswer(
           (_) async => [_cat(monthlyLimit: null)],
         );
-        when(() => txnRepo.fetchTransactions(from: any(named: 'from'), to: any(named: 'to')))
-            .thenAnswer((_) async => []);
+        when(() => txnRepo.fetchTransactions(
+            from: any(named: 'from'),
+            to: any(named: 'to'))).thenAnswer((_) async => []);
       },
       build: () => BudgetBloc(catRepo, txnRepo),
       act: (bloc) => bloc.add(const LoadBudgets()),
@@ -221,8 +230,9 @@ void main() {
       setUp: () {
         when(() => catRepo.fetchCategories())
             .thenAnswer((_) async => throw Exception('Firestore error'));
-        when(() => txnRepo.fetchTransactions(from: any(named: 'from'), to: any(named: 'to')))
-            .thenAnswer((_) async => []);
+        when(() => txnRepo.fetchTransactions(
+            from: any(named: 'from'),
+            to: any(named: 'to'))).thenAnswer((_) async => []);
       },
       build: () => BudgetBloc(catRepo, txnRepo),
       act: (bloc) => bloc.add(const LoadBudgets()),
@@ -235,10 +245,11 @@ void main() {
     blocTest<BudgetBloc, BudgetState>(
       'emits BudgetError when fetchTransactions throws',
       setUp: () {
-        when(() => catRepo.fetchCategories())
-            .thenAnswer((_) async => [_cat()]);
-        when(() => txnRepo.fetchTransactions(from: any(named: 'from'), to: any(named: 'to')))
-            .thenAnswer((_) async => throw Exception('Transaction fetch failed'));
+        when(() => catRepo.fetchCategories()).thenAnswer((_) async => [_cat()]);
+        when(() => txnRepo.fetchTransactions(
+                from: any(named: 'from'), to: any(named: 'to')))
+            .thenAnswer(
+                (_) async => throw Exception('Transaction fetch failed'));
       },
       build: () => BudgetBloc(catRepo, txnRepo),
       act: (bloc) => bloc.add(const LoadBudgets()),
@@ -258,8 +269,9 @@ void main() {
         when(() => catRepo.fetchCategories()).thenAnswer(
           (_) async => [_cat(id: 'cat-food', monthlyLimit: 7000.0)],
         );
-        when(() => txnRepo.fetchTransactions(from: any(named: 'from'), to: any(named: 'to')))
-            .thenAnswer((_) async => []);
+        when(() => txnRepo.fetchTransactions(
+            from: any(named: 'from'),
+            to: any(named: 'to'))).thenAnswer((_) async => []);
       },
       build: () => BudgetBloc(catRepo, txnRepo),
       act: (bloc) => bloc.add(const SetBudgetLimit('cat-food', 7000.0)),
@@ -279,8 +291,9 @@ void main() {
             .thenAnswer((_) async {});
         when(() => catRepo.fetchCategories())
             .thenAnswer((_) async => [_cat(monthlyLimit: null)]);
-        when(() => txnRepo.fetchTransactions(from: any(named: 'from'), to: any(named: 'to')))
-            .thenAnswer((_) async => []);
+        when(() => txnRepo.fetchTransactions(
+            from: any(named: 'from'),
+            to: any(named: 'to'))).thenAnswer((_) async => []);
       },
       build: () => BudgetBloc(catRepo, txnRepo),
       act: (bloc) => bloc.add(const SetBudgetLimit('cat-food', null)),

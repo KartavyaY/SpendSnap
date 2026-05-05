@@ -3,11 +3,11 @@ import 'package:spendsnap/core/utils/date_utils.dart';
 
 void main() {
   // Fixed reference dates — never call DateTime.now() in tests.
-  final _referenceDate = DateTime(2024, 1, 15, 14, 30); // Jan 15 2024, 2:30 PM
+  final referenceDate = DateTime(2024, 1, 15, 14, 30); // Jan 15 2024, 2:30 PM
 
   group('AppDateUtils.formatDay', () {
     test('formats a date as "d MMM yyyy"', () {
-      expect(AppDateUtils.formatDay(_referenceDate), '15 Jan 2024');
+      expect(AppDateUtils.formatDay(referenceDate), '15 Jan 2024');
     });
 
     test('formats the first day of a month correctly', () {
@@ -21,13 +21,13 @@ void main() {
 
   group('AppDateUtils.formatShortDay', () {
     test('formats a date as "d MMM" without the year', () {
-      expect(AppDateUtils.formatShortDay(_referenceDate), '15 Jan');
+      expect(AppDateUtils.formatShortDay(referenceDate), '15 Jan');
     });
   });
 
   group('AppDateUtils.formatMonth', () {
     test('formats a date as "MMMM yyyy"', () {
-      expect(AppDateUtils.formatMonth(_referenceDate), 'January 2024');
+      expect(AppDateUtils.formatMonth(referenceDate), 'January 2024');
     });
 
     test('formats December correctly', () {
@@ -37,7 +37,7 @@ void main() {
 
   group('AppDateUtils.formatShortMonth', () {
     test('formats a date as "MMM yyyy"', () {
-      expect(AppDateUtils.formatShortMonth(_referenceDate), 'Jan 2024');
+      expect(AppDateUtils.formatShortMonth(referenceDate), 'Jan 2024');
     });
   });
 
@@ -58,7 +58,7 @@ void main() {
 
   group('AppDateUtils.startOfMonth', () {
     test('returns the first day of the month at midnight', () {
-      final start = AppDateUtils.startOfMonth(_referenceDate);
+      final start = AppDateUtils.startOfMonth(referenceDate);
       expect(start, DateTime(2024, 1, 1));
     });
 
@@ -105,7 +105,7 @@ void main() {
 
   group('AppDateUtils.startOfDay', () {
     test('strips time component from a datetime', () {
-      final result = AppDateUtils.startOfDay(_referenceDate);
+      final result = AppDateUtils.startOfDay(referenceDate);
       expect(result, DateTime(2024, 1, 15));
       expect(result.hour, 0);
       expect(result.minute, 0);

@@ -27,7 +27,7 @@ TransactionModel _txn({
 
 void main() {
   // Fixed reference date — never call DateTime.now() in tests.
-  final _now = DateTime(2024, 1, 15);
+  final now = DateTime(2024, 1, 15);
 
   group('TransactionModel — toFirestore', () {
     test('serialises income type as the string "income"', () {
@@ -47,7 +47,7 @@ void main() {
         amount: 1234.56,
         categoryId: 'cat-food',
         note: 'Lunch',
-        date: _now,
+        date: now,
       );
       final map = txn.toFirestore();
 
@@ -87,7 +87,7 @@ void main() {
         type: TransactionType.expense,
         categoryId: 'cat-transport',
         note: 'Uber',
-        date: _now,
+        date: now,
         isRecurring: false,
       );
 
@@ -154,8 +154,8 @@ void main() {
 
   group('TransactionModel — equatable identity', () {
     test('two instances with identical props are equal', () {
-      final a = _txn(id: 'x', date: _now);
-      final b = _txn(id: 'x', date: _now);
+      final a = _txn(id: 'x', date: now);
+      final b = _txn(id: 'x', date: now);
       expect(a, equals(b));
     });
 

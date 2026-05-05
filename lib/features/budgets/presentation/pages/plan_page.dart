@@ -292,7 +292,7 @@ class _OverallBudgetCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${CurrencyFormatter.format(state.totalSpent)}',
+            CurrencyFormatter.format(state.totalSpent),
             style: AppTypography.moneyDisplay(32),
           ),
           Text(

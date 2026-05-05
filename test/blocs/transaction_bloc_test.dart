@@ -219,21 +219,21 @@ void main() {
 
   group('TransactionBloc — FilterTransactions (type filter)', () {
     // Seed the BLoC with two expense + one income before each filter test.
-    final _seedTxns = [
+    final seedTxns = [
       _txn(id: 'e1', type: TransactionType.expense, categoryId: 'cat1'),
       _txn(id: 'e2', type: TransactionType.expense, categoryId: 'cat2'),
       _txn(id: 'i1', type: TransactionType.income, categoryId: 'cat3'),
     ];
 
-    TransactionBloc _buildSeeded() {
+    TransactionBloc buildSeeded() {
       when(() => repo.watchTransactions())
-          .thenAnswer((_) => Stream.value(_seedTxns));
+          .thenAnswer((_) => Stream.value(seedTxns));
       return TransactionBloc(repo);
     }
 
     blocTest<TransactionBloc, TransactionState>(
       'filters to only expense transactions when typeFilter is expense',
-      build: _buildSeeded,
+      build: buildSeeded,
       act: (bloc) async {
         bloc.add(const LoadTransactions());
         await Future<void>.delayed(Duration.zero);
@@ -253,7 +253,7 @@ void main() {
 
     blocTest<TransactionBloc, TransactionState>(
       'filters to only income transactions when typeFilter is income',
-      build: _buildSeeded,
+      build: buildSeeded,
       act: (bloc) async {
         bloc.add(const LoadTransactions());
         await Future<void>.delayed(Duration.zero);
@@ -273,7 +273,7 @@ void main() {
 
     blocTest<TransactionBloc, TransactionState>(
       'clearing a filter with FilterTransactions() shows all transactions again',
-      build: _buildSeeded,
+      build: buildSeeded,
       act: (bloc) async {
         bloc.add(const LoadTransactions());
         await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -304,21 +304,21 @@ void main() {
   });
 
   group('TransactionBloc — FilterTransactions (category filter)', () {
-    final _seedTxns = [
+    final seedTxns = [
       _txn(id: 't1', categoryId: 'cat-food'),
       _txn(id: 't2', categoryId: 'cat-transport'),
       _txn(id: 't3', categoryId: 'cat-food'),
     ];
 
-    TransactionBloc _buildSeeded() {
+    TransactionBloc buildSeeded() {
       when(() => repo.watchTransactions())
-          .thenAnswer((_) => Stream.value(_seedTxns));
+          .thenAnswer((_) => Stream.value(seedTxns));
       return TransactionBloc(repo);
     }
 
     blocTest<TransactionBloc, TransactionState>(
       'filters to transactions matching the category filter list',
-      build: _buildSeeded,
+      build: buildSeeded,
       act: (bloc) async {
         bloc.add(const LoadTransactions());
         await Future<void>.delayed(Duration.zero);
@@ -342,21 +342,21 @@ void main() {
     final mid = DateTime(2024, 1, 10);
     final late_ = DateTime(2024, 1, 20);
 
-    final _seedTxns = [
+    final seedTxns = [
       _txn(id: 'd1', date: early),
       _txn(id: 'd2', date: mid),
       _txn(id: 'd3', date: late_),
     ];
 
-    TransactionBloc _buildSeeded() {
+    TransactionBloc buildSeeded() {
       when(() => repo.watchTransactions())
-          .thenAnswer((_) => Stream.value(_seedTxns));
+          .thenAnswer((_) => Stream.value(seedTxns));
       return TransactionBloc(repo);
     }
 
     blocTest<TransactionBloc, TransactionState>(
       'filters out transactions before the "from" date',
-      build: _buildSeeded,
+      build: buildSeeded,
       act: (bloc) async {
         bloc.add(const LoadTransactions());
         await Future<void>.delayed(Duration.zero);
@@ -376,7 +376,7 @@ void main() {
 
     blocTest<TransactionBloc, TransactionState>(
       'filters out transactions after the "to" date',
-      build: _buildSeeded,
+      build: buildSeeded,
       act: (bloc) async {
         bloc.add(const LoadTransactions());
         await Future<void>.delayed(Duration.zero);
@@ -396,21 +396,21 @@ void main() {
   });
 
   group('TransactionBloc — FilterTransactions (search filter)', () {
-    final _seedTxns = [
+    final seedTxns = [
       _txn(id: 's1', note: 'Lunch at Cafe', categoryId: 'cat-food'),
       _txn(id: 's2', note: 'Uber ride', categoryId: 'cat-transport'),
       _txn(id: 's3', amount: 123.0, categoryId: 'cat-other'),
     ];
 
-    TransactionBloc _buildSeeded() {
+    TransactionBloc buildSeeded() {
       when(() => repo.watchTransactions())
-          .thenAnswer((_) => Stream.value(_seedTxns));
+          .thenAnswer((_) => Stream.value(seedTxns));
       return TransactionBloc(repo);
     }
 
     blocTest<TransactionBloc, TransactionState>(
       'filters by note substring (case-insensitive)',
-      build: _buildSeeded,
+      build: buildSeeded,
       act: (bloc) async {
         bloc.add(const LoadTransactions());
         await Future<void>.delayed(Duration.zero);
@@ -428,7 +428,7 @@ void main() {
 
     blocTest<TransactionBloc, TransactionState>(
       'filters by amount substring',
-      build: _buildSeeded,
+      build: buildSeeded,
       act: (bloc) async {
         bloc.add(const LoadTransactions());
         await Future<void>.delayed(Duration.zero);
@@ -446,7 +446,7 @@ void main() {
 
     blocTest<TransactionBloc, TransactionState>(
       'filters by category name when categoryNames map is provided',
-      build: _buildSeeded,
+      build: buildSeeded,
       act: (bloc) async {
         bloc.add(const LoadTransactions());
         await Future<void>.delayed(Duration.zero);
@@ -471,7 +471,7 @@ void main() {
 
     blocTest<TransactionBloc, TransactionState>(
       'returns empty filtered list when search query matches nothing',
-      build: _buildSeeded,
+      build: buildSeeded,
       act: (bloc) async {
         bloc.add(const LoadTransactions());
         await Future<void>.delayed(Duration.zero);
