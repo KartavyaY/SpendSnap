@@ -186,14 +186,13 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
   void _pickFrequency(BuildContext ctx) {
     showModalBottomSheet(
-      useRootNavigator: true,
       context: ctx,
       backgroundColor: AppColors.paper,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      builder: (sheetCtx) => Padding(
+        padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(sheetCtx).padding.bottom + 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,6 +318,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         }
 
         return Scaffold(
+          resizeToAvoidBottomInset: false,
           appBar: AppBar(
             title: Text(
               widget.editId != null ? 'Edit transaction' : 'New transaction',
@@ -335,10 +335,13 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             ),
           ),
           body: Builder(builder: (context) {
-            // padding.bottom = pillHeight (set by MainShell overlay).
-            // Button sits 16px above the pill's top edge.
-            // Sit just above pill: scrollClearance = pillHeight + 24, want ~8px above pill.
-            final btnBottom = MediaQuery.of(context).padding.bottom - 16;
+            // Body does not resize for keyboard (resizeToAvoidBottomInset: false).
+            // Button floats above keyboard; clamped to minBottom so it never
+            // slides behind the pill during keyboard dismiss animation.
+            final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+            final minBottom = MediaQuery.of(context).padding.bottom - 16;
+            final btnBottom = (viewInsets > 0 ? viewInsets + 16 : minBottom)
+                .clamp(minBottom, double.infinity);
             return Stack(
               children: [
                 SingleChildScrollView(
@@ -710,8 +713,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                               horizontal: 16, vertical: 4),
                           child: SwitchListTile(
                             value: _isRecurring,
-                            onChanged: (v) =>
-                                setState(() => _isRecurring = v),
+                            onChanged: (v) => setState(() {
+                                _isRecurring = v;
+                                if (v) _recurringFreq ??= 'monthly';
+                              }),
                             title: const Text('Recurring'),
                             subtitle: const Text(
                                 'Repeat this transaction automatically'),

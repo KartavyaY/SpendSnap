@@ -590,6 +590,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
           : Transform.translate(
               offset: const Offset(0, 16),
               child: FloatingActionButton.extended(
+                heroTag: 'txn_list_fab',
                 onPressed: () => context.go('/transactions/add'),
                 backgroundColor: AppColors.orange,
                 foregroundColor: Colors.white,
