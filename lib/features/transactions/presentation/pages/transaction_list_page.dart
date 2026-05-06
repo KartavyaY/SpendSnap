@@ -588,7 +588,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
       floatingActionButton: MediaQuery.of(context).viewInsets.bottom > 0
           ? null
           : Transform.translate(
-              offset: const Offset(0, 24),
+              offset: const Offset(0, 16),
               child: FloatingActionButton.extended(
                 onPressed: () => context.go('/transactions/add'),
                 backgroundColor: AppColors.orange,
