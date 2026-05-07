@@ -104,7 +104,7 @@ class MainShell extends StatelessWidget {
   final Widget child;
   const MainShell({super.key, required this.child});
 
-  static const _tabRoutes = ['/', '/transactions', null, '/budgets', '/me'];
+  static const _tabRoutes = ['/', '/transactions', null, '/budgets', '/analytics'];
 
   int _currentIndex(String location) {
     for (int i = 0; i < _tabRoutes.length; i++) {
@@ -275,8 +275,8 @@ class _SpendSnapTabBar extends StatelessWidget {
                     onTap: () => onTap(3),
                   ),
                   _TabItem(
-                    icon: Icons.person_outline,
-                    label: 'Me',
+                    icon: Icons.bar_chart_outlined,
+                    label: 'Analytics',
                     active: currentIndex == 4,
                     onTap: () => onTap(4),
                   ),

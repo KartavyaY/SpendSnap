@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <application
-        android:label="finance_app"
+        android:label="SpendSnap"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

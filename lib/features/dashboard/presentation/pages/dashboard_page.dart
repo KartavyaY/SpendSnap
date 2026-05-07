@@ -289,17 +289,9 @@ class _DashboardPageState extends State<DashboardPage> {
               );
             },
           ),
-          PopupMenuButton(
-            icon: const Icon(Icons.more_vert),
-            constraints: const BoxConstraints(minWidth: 0),
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'logout', child: Text('Log out')),
-            ],
-            onSelected: (v) {
-              if (v == 'logout') {
-                context.read<AuthBloc>().add(const LogoutRequested());
-              }
-            },
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () => context.go('/me'),
           ),
         ],
       ),
