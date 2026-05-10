@@ -40,7 +40,7 @@ class _ScanView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan a receipt'),
+        title: Text('Scan a receipt', style: AppTypography.headingLarge),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => context.go('/'),

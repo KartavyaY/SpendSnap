@@ -377,7 +377,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
             ),
           ),
         )
-            : const Text('Activity'),
+            : Text('Activity', style: AppTypography.headingLarge),
         leading: IconButton(
           icon: Icon(_searchActive ? Icons.close : Icons.search),
           onPressed: () {

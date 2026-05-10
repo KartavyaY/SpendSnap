@@ -23,7 +23,7 @@ class CategoriesPage extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Categories'),
+          title: Text('Categories', style: AppTypography.headingLarge),
           actions: [
             IconButton(
               icon: const Icon(Icons.add),

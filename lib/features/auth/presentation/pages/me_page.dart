@@ -17,7 +17,7 @@ class MePage extends StatelessWidget {
         final user = state is Authenticated ? state.user : null;
 
         return Scaffold(
-          appBar: AppBar(title: const Text('Me')),
+          appBar: AppBar(title: Text('Me', style: AppTypography.headingLarge)),
           body: ListView(
             children: [
               // ── Header ──────────────────────────────────────

@@ -57,7 +57,7 @@ class _PlanPageState extends State<PlanPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Plan'),
+        title: Text('Plan', style: AppTypography.headingLarge),
         actions: [
           Builder(
             builder: (innerCtx) => IconButton(

@@ -322,6 +322,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           appBar: AppBar(
             title: Text(
               widget.editId != null ? 'Edit transaction' : 'New transaction',
+              style: AppTypography.headingLarge,
             ),
             leading: IconButton(
               icon: const Icon(Icons.close),

@@ -9,8 +9,6 @@ import '../../../../core/utils/date_utils.dart';
 import '../../../../shared/widgets/loading_indicator.dart';
 import '../../../../shared/widgets/spend_ring.dart';
 import '../../../../shared/widgets/transaction_tile.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../categories/domain/category_model.dart';
 import '../../../categories/presentation/bloc/category_bloc.dart';
 import '../../../categories/presentation/bloc/category_state.dart';
