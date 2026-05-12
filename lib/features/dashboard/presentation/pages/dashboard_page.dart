@@ -522,79 +522,109 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.ink,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Eyebrow
-          Text(
-            monthLabel,
-            style: AppTypography.eyebrow
-                .copyWith(color: AppColors.cream300),
-          ),
-          const SizedBox(height: 10),
-          // Big amount
-          Text(
-            CurrencyFormatter.format(expense),
-            style: AppTypography.moneyDisplay(52, color: AppColors.paper),
-          ),
-          const SizedBox(height: 24),
-          const Divider(
-            color: Color(0x1FFDFBF7),
-            height: 1,
-            thickness: 1,
-          ),
-          const SizedBox(height: 20),
-          // Stats row
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Budget left',
-                      style: AppTypography.caption
-                          .copyWith(color: AppColors.cream300),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      CurrencyFormatter.format(budgetLeft),
-                      style: AppTypography.moneyBody
-                          .copyWith(color: AppColors.paper),
-                    ),
-                  ],
-                ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        color: const Color(0XFF26282B),
+        child: Stack(
+          children: [
+            // Dotted notebook texture
+            const Positioned.fill(
+              child: CustomPaint(painter: _DotGridPainter()),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    monthLabel,
+                    style: AppTypography.eyebrow
+                        .copyWith(color: AppColors.cream300),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    CurrencyFormatter.format(expense),
+                    style: AppTypography.moneyDisplay(52, color: AppColors.paper),
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(
+                    color: Color(0x1FFDFBF7),
+                    height: 1,
+                    thickness: 1,
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Budget left',
+                              style: AppTypography.caption
+                                  .copyWith(color: AppColors.cream300),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              CurrencyFormatter.format(budgetLeft),
+                              style: AppTypography.moneyBody
+                                  .copyWith(color: AppColors.paper),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Days left',
+                              style: AppTypography.caption
+                                  .copyWith(color: AppColors.cream300),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '$daysLeft',
+                              style: AppTypography.headingLarge
+                                  .copyWith(color: AppColors.paper),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Days left',
-                      style: AppTypography.caption
-                          .copyWith(color: AppColors.cream300),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$daysLeft',
-                      style: AppTypography.headingLarge
-                          .copyWith(color: AppColors.paper),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _DotGridPainter extends CustomPainter {
+  const _DotGridPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const spacing = 18.0;
+    const radius = 1.3;
+    final paint = Paint()
+      ..color = const Color(0x11FDFBF7) // ~7% warm white
+      ..style = PaintingStyle.fill;
+
+    for (double x = spacing / 2; x < size.width; x += spacing) {
+      for (double y = -spacing / 2; y < size.height; y += spacing) {
+        canvas.drawCircle(Offset(x, y), radius, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DotGridPainter old) => false;
 }
 
 class _GoalChip extends StatelessWidget {
